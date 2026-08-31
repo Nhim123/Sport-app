@@ -48,6 +48,19 @@ export interface GymClass {
   highlighted?: boolean;      // ô giờ nền volt vs xám
 }
 
+export type GymMode = 'package' | 'daypass';        // thẻ hội viên: gói tập | vé ngày
+export type DayPassStatus = 'booking' | 'active';   // vé ngày: đang đặt | đã hoàn tất đăng ký
+
+export interface DayPass {
+  brand: string;              // "CITYGYM"
+  memberName: string;         // "Minh Khang"
+  passCode: string;           // "DP-2026-0831"
+  priceLabel: string;         // "60.000₫"
+  validDate: string;          // "31/08/2026" (hiệu lực trong ngày)
+  branch: string;             // "CityGym Q7"
+  entriesLeft: number;        // 1 lượt vào
+}
+
 export interface Membership {
   brand: string;              // "CITYGYM"
   plan: string;               // "GÓI THÁNG"
@@ -85,3 +98,15 @@ export interface Match {
 // ---- Profile ----
 export interface MenuItem { key: string; icon: string; label: string }
 export interface ProfileStat { value: string; label: string }
+
+// ---- Promo (thanh quảng cáo Home) ----
+export interface Promo {
+  id: string;
+  tab: FilterTab;                          // bộ môn áp dụng; 'all' = hiện ở mọi tab
+  badge?: string;                          // "ƯU ĐÃI" | "MỚI" | "-30%"
+  title: string;                           // "Giảm 30% khung giờ vàng"
+  subtitle: string;                        // dòng mô tả ngắn
+  ctaLabel: string;                        // "Nhận ưu đãi"
+  gradient: readonly [string, string];     // nền banner
+  emoji?: string;                          // trang trí góc phải
+}

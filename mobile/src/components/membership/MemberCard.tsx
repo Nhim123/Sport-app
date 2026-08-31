@@ -2,27 +2,58 @@ import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { grad, color } from '../../theme/tokens';
 import { Membership } from '../../types';
-import { QrCode } from '../primitives/QrCode';
+import { QrReveal } from './QrReveal';
 
-interface Props { membership: Membership }
+interface Props { membership: Membership; qrSeconds?: number }
 
-/** Thẻ hội viên gradient tối + mã QR động. */
-export function MemberCard({ membership: m }: Props) {
+/**
+ * Thẻ hội viên (gói tập): loại thẻ · họ tên · mã hồ sơ · hết hạn.
+ * QR ẩn tới khi bấm; ô QR nhỏ có đếm ngược, chạm để phóng to; tự ẩn khi hết giờ.
+ */
+export function MemberCard({ membership: m, qrSeconds = 30 }: Props) {
   return (
     <LinearGradient colors={grad.member} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.glow} />
+
       <View style={styles.headRow}>
-        <Text style={styles.brand}>{m.brand} · {m.plan}</Text>
+        <Text style={styles.brand}>{m.brand}</Text>
         {m.active ? (
           <View style={styles.statusPill}><Text style={styles.statusTxt}>ĐANG HOẠT ĐỘNG</Text></View>
         ) : null}
       </View>
+
+      {/* Họ và tên */}
       <Text style={styles.name}>{m.memberName}</Text>
-      <Text style={styles.expiry}>Còn {m.daysLeft} ngày · hết hạn {m.expiry}</Text>
-      <View style={styles.qrWrap}>
-        <View style={styles.qrBox}><QrCode value={m.memberCode} /></View>
+
+      {/* Loại thẻ · Hết hạn */}
+      <View style={styles.metaRow}>
+        <View style={styles.metaCol}>
+          <Text style={styles.metaLabel}>Loại thẻ</Text>
+          <Text style={styles.metaValue}>{m.plan}</Text>
+        </View>
+        <View style={styles.metaCol}>
+          <Text style={styles.metaLabel}>Hết hạn</Text>
+          <Text style={styles.metaValue}>{m.expiry}</Text>
+        </View>
       </View>
-      <Text style={styles.code}>{m.memberCode}</Text>
+
+      {/* Mã hồ sơ thẻ (nếu có) */}
+      {m.memberCode ? (
+        <View style={styles.codeCol}>
+          <Text style={styles.metaLabel}>Mã hồ sơ</Text>
+          <Text style={[styles.metaValue, styles.codeValue]}>{m.memberCode}</Text>
+        </View>
+      ) : null}
+
+      <QrReveal
+        value={m.memberCode}
+        modalName={m.memberName}
+        modalSub={`${m.brand} · ${m.plan}`}
+        code={m.memberCode}
+        seconds={qrSeconds}
+        miniTitle="Mã QR check-in"
+        buttonLabel="Hiện mã QR check-in"
+      />
     </LinearGradient>
   );
 }
@@ -35,8 +66,10 @@ const styles = StyleSheet.create({
   statusPill: { backgroundColor: 'rgba(198,248,51,0.18)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 100 },
   statusTxt: { color: color.volt, fontSize: 10.5, fontWeight: '800' },
   name: { color: '#FFFFFF', fontSize: 21, fontWeight: '800', marginTop: 14 },
-  expiry: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 },
-  qrWrap: { alignItems: 'center', marginTop: 20 },
-  qrBox: { backgroundColor: '#FFFFFF', padding: 14, borderRadius: 18 },
-  code: { textAlign: 'center', color: 'rgba(255,255,255,0.55)', fontSize: 11, marginTop: 10, letterSpacing: 2 },
+  metaRow: { flexDirection: 'row', marginTop: 18 },
+  metaCol: { flex: 1 },
+  metaLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', marginBottom: 3 },
+  metaValue: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  codeCol: { marginTop: 14 },
+  codeValue: { letterSpacing: 1.5 },
 });

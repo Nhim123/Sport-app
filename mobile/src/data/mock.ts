@@ -1,8 +1,36 @@
 import { grad } from '../theme/tokens';
 import {
   Venue, FilterTab, Slot, DayItem,
-  Booking, GymClass, Membership, Club, Match, MenuItem, ProfileStat,
+  Booking, GymClass, Membership, DayPass, Club, Match, MenuItem, ProfileStat, Promo,
 } from '../types';
+
+// ---- Promo (thanh quảng cáo Home) — đổi theo bộ môn đang chọn ----
+export const promos: Promo[] = [
+  // Pickleball
+  { id: 'pk-promo1', tab: 'pickle', badge: 'ƯU ĐÃI', title: 'Giảm 30% khung giờ vàng',
+    subtitle: 'Đặt sân pickleball 12h–15h các ngày trong tuần', ctaLabel: 'Nhận ưu đãi',
+    gradient: grad.dark, emoji: '🏓' },
+  { id: 'pk-promo2', tab: 'pickle', badge: 'GIẢI ĐẤU', title: 'Giải đôi nam nữ Q7 mở đăng ký',
+    subtitle: 'Thi đấu Chủ nhật này — giải thưởng đến 5 triệu', ctaLabel: 'Đăng ký ngay',
+    gradient: grad.olive, emoji: '🏆' },
+  // Gym
+  { id: 'gy-promo1', tab: 'gym', badge: 'MỚI', title: 'Gói gym 3 tháng chỉ 1.499K',
+    subtitle: 'Tiết kiệm 300K khi đăng ký tại CityGym Q7', ctaLabel: 'Xem gói',
+    gradient: grad.green, emoji: '🏋️' },
+  { id: 'gy-promo2', tab: 'gym', badge: 'FREE', title: 'Buổi tập thử cùng PT miễn phí',
+    subtitle: 'Đặt lịch với huấn luyện viên cá nhân tuần đầu', ctaLabel: 'Đặt lịch',
+    gradient: grad.dark, emoji: '💪' },
+  // Chung (hiện ở mọi tab)
+  { id: 'all-promo1', tab: 'all', badge: 'FREE', title: 'Rủ bạn — tặng 1 buổi chơi',
+    subtitle: 'Mời bạn mới, cả hai nhận voucher 50K', ctaLabel: 'Mời bạn',
+    gradient: grad.olive, emoji: '🎁' },
+];
+
+/** Lọc quảng cáo theo bộ môn: 'all' xem tất cả; tab cụ thể = promo bộ môn đó + promo chung. */
+export function filterPromos(tab: FilterTab): Promo[] {
+  if (tab === 'all') return promos;
+  return promos.filter(p => p.tab === tab || p.tab === 'all');
+}
 
 export const venues: Venue[] = [
   { id: 'pk1', name: 'Pickleball Center Q7', sport: 'pickle', gradient: grad.dark,
@@ -63,6 +91,11 @@ export const membership: Membership = {
   brand: 'CITYGYM', plan: 'GÓI THÁNG', memberName: 'Minh Khang', memberCode: 'MK-2026-0714',
   daysLeft: 18, expiry: '14/08/2026', active: true,
   packageType: 'Không giới hạn · 1 tháng', checkinsThisMonth: 12, branch: 'CityGym Q7',
+};
+
+export const dayPass: DayPass = {
+  brand: 'CITYGYM', memberName: 'Minh Khang', passCode: 'DP-2026-0831',
+  priceLabel: '60.000₫', validDate: '31/08/2026', branch: 'CityGym Q7', entriesLeft: 1,
 };
 
 export const gymClasses: GymClass[] = [

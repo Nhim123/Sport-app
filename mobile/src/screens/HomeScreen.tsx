@@ -6,13 +6,14 @@ import { Screen } from '../components/Screen';
 import { HomeHeader } from '../components/home/HomeHeader';
 import { SearchBar } from '../components/home/SearchBar';
 import { FilterChipGroup, ChipOption } from '../components/chips/FilterChipGroup';
+import { PromoCarousel } from '../components/home/PromoCarousel';
 import { HeroCard } from '../components/cards/HeroCard';
 import { VenueCard } from '../components/cards/VenueCard';
 import { SectionHeader } from '../components/primitives/SectionHeader';
 import { useFilterTab } from '../hooks/useFilterTab';
-import { FilterTab, Venue } from '../types';
+import { FilterTab, Venue, Promo } from '../types';
 import { RootStackParamList } from '../navigation/types';
-import { filterVenues, pickHero, listTitle } from '../data/mock';
+import { filterVenues, pickHero, listTitle, filterPromos } from '../data/mock';
 import { space } from '../theme/tokens';
 
 const TABS: ChipOption<FilterTab>[] = [
@@ -28,10 +29,15 @@ export default function HomeScreen() {
 
   const hero = useMemo(() => pickHero(tab), [tab]);
   const venues = useMemo(() => filterVenues(tab), [tab]);
+  const promoList = useMemo(() => filterPromos(tab), [tab]);
 
   const openVenue = useCallback((v: Venue) => {
     if (v.sport === 'gym') nav.navigate('Gym');
     else nav.navigate('VenueDetail', { id: v.id, name: v.name });
+  }, [nav]);
+
+  const openPromo = useCallback((_p: Promo) => {
+    nav.navigate('MainTabs', { screen: 'Search' });
   }, [nav]);
 
   return (
@@ -46,6 +52,7 @@ export default function HomeScreen() {
           <View>
             <HomeHeader greeting="Chào buổi sáng 👋" name="Minh Khang" avatarLabel="MK" />
             <SearchBar value={query} onChangeText={setQuery} placeholder="Tìm sân, phòng gym gần bạn…" />
+            <PromoCarousel promos={promoList} onPressPromo={openPromo} />
             <FilterChipGroup value={tab} options={TABS} onChange={setTab} />
             <HeroCard venue={hero} onPress={() => openVenue(hero)} />
             <SectionHeader title={listTitle(tab)} actionLabel="Xem tất cả" onAction={() => nav.navigate('MainTabs', { screen: 'Search' })} />
