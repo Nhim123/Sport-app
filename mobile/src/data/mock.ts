@@ -93,9 +93,20 @@ export const membership: Membership = {
   packageType: 'Không giới hạn · 1 tháng', checkinsThisMonth: 12, branch: 'CityGym Q7',
 };
 
+// Vé ngày cá nhân
 export const dayPass: DayPass = {
   brand: 'CITYGYM', memberName: 'Minh Khang', passCode: 'DP-2026-0831',
   priceLabel: '60.000₫', validDate: '31/08/2026', branch: 'CityGym Q7', entriesLeft: 1,
+  venue: 'CityGym Q7', address: '123 Nguyễn Thị Thập, Quận 7, TP.HCM',
+  bookingTime: 'Hôm nay · 18:00–19:00',
+};
+
+// Vé sinh hoạt câu lạc bộ
+export const clubPass: DayPass = {
+  brand: 'Q7 SMASHERS', memberName: 'Minh Khang', passCode: 'CLB-2026-0831',
+  priceLabel: '40.000₫', validDate: '31/08/2026', branch: 'Sân Q7 · buổi 18:00', entriesLeft: 1,
+  venue: 'Pickleball Center Q7 · Sân 3', address: 'Khu Him Lam, Quận 7, TP.HCM',
+  bookingTime: 'Hôm nay · 18:00–19:00',
 };
 
 export const gymClasses: GymClass[] = [

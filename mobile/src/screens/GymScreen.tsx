@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { color, font, radius, space, shadow } from '../theme/tokens';
-import { membership, dayPass, gymClasses } from '../data/mock';
+import { membership, dayPass, clubPass, gymClasses } from '../data/mock';
+import { CLUB_CARD_PROPS } from '../data/passPresets';
 import { MemberCard } from '../components/membership/MemberCard';
 import { DayPassCard } from '../components/membership/DayPassCard';
 import { ClassCard } from '../components/cards/ClassCard';
 import { SegmentedTabs, SegOption } from '../components/chips/SegmentedTabs';
-import { GymMode, DayPassStatus } from '../types';
+import { usePasses } from '../state/PassContext';
+import { GymMode } from '../types';
+import { RootStackParamList } from '../navigation/types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList, 'Gym'>;
 
 const MODES: SegOption<GymMode>[] = [
   { key: 'package', label: 'Gói tập' },
@@ -23,9 +30,23 @@ function InfoRow({ label, value, last }: { label: string; value: string; last?: 
 }
 
 export default function GymScreen() {
-  const [mode, setMode] = useState<GymMode>('package');
-  const [passStatus, setPassStatus] = useState<DayPassStatus>('booking');
+  const nav = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Gym'>>();
+  const { active } = usePasses();
+  const [mode, setMode] = useState<GymMode>(route.params?.mode ?? 'package');
+
+  // Về từ luồng thanh toán với { mode: 'daypass' } → mở đúng tab vé ngày.
+  useEffect(() => {
+    if (route.params?.mode) setMode(route.params.mode);
+  }, [route.params?.mode]);
+
   const isPackage = mode === 'package';
+
+  // Vé ngày: hiển thị vé đã kích hoạt (ưu tiên cá nhân, kế đến CLB), nếu chưa mua thì trạng thái đặt vé.
+  const showClub = active.club && !active.personal;
+  const dpPass = showClub ? clubPass : dayPass;
+  const dpActive = active.personal || active.club;
+  const clubProps = showClub ? CLUB_CARD_PROPS : {};
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: space.xl, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
@@ -35,7 +56,12 @@ export default function GymScreen() {
       {isPackage ? (
         <MemberCard membership={membership} />
       ) : (
-        <DayPassCard pass={dayPass} status={passStatus} onBook={() => setPassStatus('active')} />
+        <DayPassCard
+          pass={dpPass}
+          status={dpActive ? 'active' : 'booking'}
+          onBook={() => nav.navigate('DayPassPayment', { kind: 'personal' })}
+          {...clubProps}
+        />
       )}
 
       {isPackage ? (
@@ -51,11 +77,11 @@ export default function GymScreen() {
         <>
           <Text style={styles.section}>Chi tiết vé</Text>
           <View style={styles.infoCard}>
-            <InfoRow label="Trạng thái" value={passStatus === 'active' ? 'Đã đăng ký' : 'Chưa đặt vé'} />
-            <InfoRow label="Giá vé" value={dayPass.priceLabel} />
-            <InfoRow label="Hiệu lực" value={'Trong ngày · ' + dayPass.validDate} />
-            <InfoRow label="Lượt vào" value={dayPass.entriesLeft + ' lượt'} />
-            <InfoRow label="Chi nhánh" value={dayPass.branch} last />
+            <InfoRow label="Loại vé" value={showClub ? 'Vé câu lạc bộ' : 'Vé ngày cá nhân'} />
+            <InfoRow label="Trạng thái" value={dpActive ? 'Đã đăng ký' : 'Chưa đặt vé'} />
+            <InfoRow label="Giá vé" value={dpPass.priceLabel} />
+            <InfoRow label="Hiệu lực" value={'Trong ngày · ' + dpPass.validDate} />
+            <InfoRow label={showClub ? 'Buổi tập' : 'Chi nhánh'} value={dpPass.branch} last />
           </View>
         </>
       )}

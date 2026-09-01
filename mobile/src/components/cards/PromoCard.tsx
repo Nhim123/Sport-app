@@ -33,7 +33,7 @@ function PromoCardBase({ promo, width, onPress }: { promo: Promo; width: number;
 
 const styles = StyleSheet.create({
   wrap: { borderRadius: radius.card, overflow: 'hidden' },
-  bg: { minHeight: 148, padding: 16, justifyContent: 'center' },
+  bg: { height: 148, padding: 16, justifyContent: 'center' },
   emoji: { position: 'absolute', right: 8, bottom: -14, fontSize: 104, opacity: 0.16 },
   content: { paddingRight: 72 },
   badge: { flexDirection: 'row', marginBottom: 8 },

@@ -50,7 +50,7 @@ export default function HomeScreen() {
         renderItem={({ item }) => <VenueCard venue={item} onPress={() => openVenue(item)} />}
         ListHeaderComponent={
           <View>
-            <HomeHeader greeting="Chào buổi sáng 👋" name="Minh Khang" avatarLabel="MK" />
+            <HomeHeader greeting="Chào buổi sáng 👋" name="Minh Khang" avatarIcon="person" />
             <SearchBar value={query} onChangeText={setQuery} placeholder="Tìm sân, phòng gym gần bạn…" />
             <PromoCarousel promos={promoList} onPressPromo={openPromo} />
             <FilterChipGroup value={tab} options={TABS} onChange={setTab} />

@@ -1,35 +1,51 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   View, FlatList, StyleSheet, useWindowDimensions,
   NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { PromoCard } from '../cards/PromoCard';
-import { color, space } from '../../theme/tokens';
+import { space } from '../../theme/tokens';
 import { Promo } from '../../types';
 
 const GAP = 12;
+const INTERVAL_MS = 4000;   // thời gian mỗi banner trước khi tự chuyển
 
-interface Props { promos: Promo[]; onPressPromo: (promo: Promo) => void }
+interface Props { promos: Promo[]; onPressPromo: (promo: Promo) => void; intervalMs?: number }
 
 /**
- * Thanh quảng cáo Home: FlatList ngang snap-từng-trang + chấm phân trang.
- * Compound — tự giữ chỉ số banner đang xem; card = 1 trang (rộng bằng vùng nội dung màn).
+ * Thanh quảng cáo Home: FlatList ngang snap-từng-trang, bố cục cố định (không có chấm phân trang).
+ * Tự động chạy vòng lặp theo thời gian; đồng bộ khi vuốt tay và tạm dừng trong lúc đang vuốt.
  */
-function PromoCarouselBase({ promos, onPressPromo }: Props) {
+function PromoCarouselBase({ promos, onPressPromo, intervalMs = INTERVAL_MS }: Props) {
   const { width } = useWindowDimensions();
   const cardWidth = width - space.xl * 2;          // trừ padding ngang 24 hai bên của Home
-  const [index, setIndex] = useState(0);
+  const step = cardWidth + GAP;
   const listRef = useRef<FlatList<Promo>>(null);
+  const dragging = useRef(false);
+  const [index, setIndex] = useState(0);
 
-  // Đổi bộ môn → danh sách promo đổi: quay về banner đầu, đồng bộ chấm phân trang.
+  // Đổi bộ môn → về banner đầu.
   useEffect(() => {
     setIndex(0);
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [promos]);
 
-  const onMomentumEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setIndex(Math.round(e.nativeEvent.contentOffset.x / (cardWidth + GAP)));
-  }, [cardWidth]);
+  // Tự động chuyển banner theo vòng lặp; timer khởi động lại mỗi khi index đổi (kể cả sau khi vuốt tay).
+  useEffect(() => {
+    if (promos.length <= 1) return;
+    const t = setTimeout(() => {
+      if (dragging.current) return;
+      const next = (index + 1) % promos.length;
+      listRef.current?.scrollToOffset({ offset: next * step, animated: true });
+      setIndex(next);
+    }, intervalMs);
+    return () => clearTimeout(t);
+  }, [index, promos, step, intervalMs]);
+
+  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    dragging.current = false;
+    setIndex(Math.round(e.nativeEvent.contentOffset.x / step));
+  };
 
   return (
     <View style={styles.wrap}>
@@ -40,31 +56,22 @@ function PromoCarouselBase({ promos, onPressPromo }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        snapToInterval={cardWidth + GAP}
+        snapToInterval={step}
         snapToAlignment="start"
         disableIntervalMomentum
+        onScrollBeginDrag={() => { dragging.current = true; }}
         onMomentumScrollEnd={onMomentumEnd}
         ItemSeparatorComponent={() => <View style={{ width: GAP }} />}
         renderItem={({ item }) => (
           <PromoCard promo={item} width={cardWidth} onPress={() => onPressPromo(item)} />
         )}
       />
-      {promos.length > 1 ? (
-        <View style={styles.dots}>
-          {promos.map((p, i) => (
-            <View key={p.id} style={[styles.dot, i === index && styles.dotActive]} />
-          ))}
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { marginTop: 16 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: color.navIdle },
-  dotActive: { width: 18, backgroundColor: color.ink },
 });
 
 export const PromoCarousel = memo(PromoCarouselBase);

@@ -1,15 +1,17 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { color, font } from '../../theme/tokens';
-import { Avatar } from '../primitives/Avatar';
+import { Avatar, AvatarIcon } from '../primitives/Avatar';
 
-export function HomeHeader({ greeting, name, avatarLabel }: { greeting: string; name: string; avatarLabel: string }) {
+interface Props { greeting: string; name: string; avatarIcon?: AvatarIcon }
+
+export function HomeHeader({ greeting, name, avatarIcon = 'person' }: Props) {
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
         <Text style={styles.greet}>{greeting}</Text>
         <Text style={styles.name}>{name}</Text>
       </View>
-      <Avatar label={avatarLabel} />
+      <Avatar icon={avatarIcon} />
     </View>
   );
 }

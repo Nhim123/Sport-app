@@ -5,24 +5,40 @@ import { grad, color } from '../../theme/tokens';
 import { DayPass, DayPassStatus } from '../../types';
 import { QrReveal } from './QrReveal';
 
-interface Props { pass: DayPass; status: DayPassStatus; onBook: () => void; qrSeconds?: number }
+interface Props {
+  pass: DayPass;
+  status: DayPassStatus;
+  onBook: () => void;
+  qrSeconds?: number;
+  gradient?: readonly [string, string];
+  brandSuffix?: string;      // hậu tố sau brand ở header
+  title?: string;            // tiêu đề ở trạng thái đặt vé
+  benefits?: string[];       // danh sách quyền lợi
+  qrNoun?: string;           // "vào cửa" | "tham gia" → nhãn QR
+  ctaLabel?: string;         // nhãn nút đặt vé
+  priceUnit?: string;        // "ngày" | "buổi"
+}
 
-const BENEFITS = ['Vào cửa 1 lượt trong ngày', 'Dùng mọi thiết bị & khu tập', 'Không cần đăng ký gói tháng'];
+const DEFAULT_BENEFITS = ['Vào cửa 1 lượt trong ngày', 'Dùng mọi thiết bị & khu tập', 'Không cần đăng ký gói tháng'];
 
 /**
- * Thẻ vé ngày, 2 trạng thái:
- *  - 'booking': đang đặt vé → quyền lợi + giá + nút "Đặt vé ngày" (chưa có QR).
- *  - 'active' : đã hoàn tất đăng ký → thông tin vé + QR vào cửa có đếm ngước.
+ * Thẻ vé (cá nhân hoặc câu lạc bộ), 2 trạng thái:
+ *  - 'booking': đang đặt vé → quyền lợi + giá + nút đặt vé (chưa có QR).
+ *  - 'active' : đã hoàn tất đăng ký → thông tin vé + QR có đếm ngược.
  */
-export function DayPassCard({ pass: p, status, onBook, qrSeconds = 30 }: Props) {
+export function DayPassCard({
+  pass: p, status, onBook, qrSeconds = 30,
+  gradient = grad.olive, brandSuffix = 'VÉ NGÀY', title = 'Vé vào cửa 1 ngày',
+  benefits = DEFAULT_BENEFITS, qrNoun = 'vào cửa', ctaLabel = 'Đặt vé ngày', priceUnit = 'ngày',
+}: Props) {
   const active = status === 'active';
 
   return (
-    <LinearGradient colors={grad.olive} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
+    <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.glow} />
 
       <View style={styles.headRow}>
-        <Text style={styles.brand}>{p.brand} · VÉ NGÀY</Text>
+        <Text style={styles.brand}>{p.brand} · {brandSuffix}</Text>
         <View style={[styles.statusPill, active ? styles.pillActive : styles.pillIdle]}>
           <Text style={[styles.statusTxt, active ? styles.statusTxtActive : styles.statusTxtIdle]}>
             {active ? 'ĐÃ KÍCH HOẠT' : 'CHƯA KÍCH HOẠT'}
@@ -37,25 +53,25 @@ export function DayPassCard({ pass: p, status, onBook, qrSeconds = 30 }: Props) 
           <Text style={styles.expiry}>Có hiệu lực trong ngày · {p.validDate}</Text>
           <View style={styles.priceRow}>
             <Text style={styles.price}>{p.priceLabel}</Text>
-            <Text style={styles.entries}>còn {p.entriesLeft} lượt vào</Text>
+            <Text style={styles.entries}>còn {p.entriesLeft} lượt</Text>
           </View>
 
           <QrReveal
             value={p.passCode}
             modalName={p.memberName}
-            modalSub={`${p.brand} · VÉ NGÀY`}
+            modalSub={`${p.brand} · ${brandSuffix}`}
             code={p.passCode}
             seconds={qrSeconds}
-            miniTitle="Mã QR vào cửa"
-            buttonLabel="Hiện mã QR vào cửa"
+            miniTitle={`Mã QR ${qrNoun}`}
+            buttonLabel={`Hiện mã QR ${qrNoun}`}
           />
         </>
       ) : (
         <>
           {/* Trạng thái 1: đang đặt vé */}
-          <Text style={styles.title}>Vé vào cửa 1 ngày</Text>
+          <Text style={styles.title}>{title}</Text>
           <View style={styles.benefits}>
-            {BENEFITS.map(b => (
+            {benefits.map(b => (
               <View key={b} style={styles.benefitRow}>
                 <Ionicons name="checkmark-circle" size={16} color={color.volt} />
                 <Text style={styles.benefitTxt}>{b}</Text>
@@ -65,12 +81,12 @@ export function DayPassCard({ pass: p, status, onBook, qrSeconds = 30 }: Props) 
 
           <View style={styles.priceRow}>
             <Text style={styles.price}>{p.priceLabel}</Text>
-            <Text style={styles.entries}>/ ngày · {p.branch}</Text>
+            <Text style={styles.entries}>/ {priceUnit} · {p.branch}</Text>
           </View>
 
-          <Pressable onPress={onBook} accessibilityRole="button" accessibilityLabel="Đặt vé ngày" style={styles.bookBtn}>
+          <Pressable onPress={onBook} accessibilityRole="button" accessibilityLabel={ctaLabel} style={styles.bookBtn}>
             <Ionicons name="ticket-outline" size={16} color={color.ink} />
-            <Text style={styles.bookTxt}>Đặt vé ngày</Text>
+            <Text style={styles.bookTxt}>{ctaLabel}</Text>
           </Pressable>
         </>
       )}

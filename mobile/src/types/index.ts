@@ -50,6 +50,7 @@ export interface GymClass {
 
 export type GymMode = 'package' | 'daypass';        // thẻ hội viên: gói tập | vé ngày
 export type DayPassStatus = 'booking' | 'active';   // vé ngày: đang đặt | đã hoàn tất đăng ký
+export type DayPassKind = 'personal' | 'club';      // loại vé: cá nhân | câu lạc bộ
 
 export interface DayPass {
   brand: string;              // "CITYGYM"
@@ -59,6 +60,9 @@ export interface DayPass {
   validDate: string;          // "31/08/2026" (hiệu lực trong ngày)
   branch: string;             // "CityGym Q7"
   entriesLeft: number;        // 1 lượt vào
+  venue: string;              // tên sân/cơ sở — "CityGym Q7"
+  address: string;            // địa chỉ cơ sở
+  bookingTime: string;        // giờ đặt — "Hôm nay · 18:00–19:00"
 }
 
 export interface Membership {

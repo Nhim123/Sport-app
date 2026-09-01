@@ -1,13 +1,24 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
 import { IconButton } from '../components/primitives/IconButton';
 import { ClubCard } from '../components/cards/ClubCard';
 import { ClubRow } from '../components/cards/ClubRow';
 import { MatchCard } from '../components/cards/MatchCard';
-import { myClubs, discoverClubs, matches } from '../data/mock';
+import { DayPassCard } from '../components/membership/DayPassCard';
+import { myClubs, discoverClubs, matches, clubPass } from '../data/mock';
+import { CLUB_CARD_PROPS } from '../data/passPresets';
+import { usePasses } from '../state/PassContext';
+import { RootStackParamList } from '../navigation/types';
 import { color, font, space } from '../theme/tokens';
 
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
 export default function ClubScreen() {
+  const nav = useNavigation<Nav>();
+  const { active } = usePasses();
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
@@ -24,6 +35,16 @@ export default function ClubScreen() {
         >
           {myClubs.map(c => <ClubCard key={c.id} club={c} onPress={() => {}} />)}
         </ScrollView>
+
+        <View style={styles.gutter}>
+          <Text style={styles.section}>Vé sinh hoạt CLB</Text>
+          <DayPassCard
+            pass={clubPass}
+            status={active.club ? 'active' : 'booking'}
+            onBook={() => nav.navigate('DayPassPayment', { kind: 'club' })}
+            {...CLUB_CARD_PROPS}
+          />
+        </View>
 
         <View style={styles.gutter}>
           <View style={styles.sectionRow}>
