@@ -52,6 +52,15 @@ export type GymMode = 'package' | 'daypass';        // thẻ hội viên: gói t
 export type DayPassStatus = 'booking' | 'active';   // vé ngày: đang đặt | đã hoàn tất đăng ký
 export type DayPassKind = 'personal' | 'club';      // loại vé: cá nhân | câu lạc bộ
 
+// Lịch chủ sân cấu hình (khung mở + các khung giờ) — nguồn của "giờ đặt"
+export interface CourtSchedule {
+  date: string;            // "Hôm nay" | "31/08/2026"
+  openTime: string;        // "06:00"
+  closeTime: string;       // "22:00"
+  sessionMinutes: number;  // độ dài 1 lượt (vd 60)
+  slots: Slot[];           // khung giờ chủ sân mở (free/booked)
+}
+
 export interface DayPass {
   brand: string;              // "CITYGYM"
   memberName: string;         // "Minh Khang"
@@ -62,7 +71,7 @@ export interface DayPass {
   entriesLeft: number;        // 1 lượt vào
   venue: string;              // tên sân/cơ sở — "CityGym Q7"
   address: string;            // địa chỉ cơ sở
-  bookingTime: string;        // giờ đặt — "Hôm nay · 18:00–19:00"
+  schedule: CourtSchedule;    // lịch chủ sân → suy ra giờ đặt (động)
 }
 
 export interface Membership {

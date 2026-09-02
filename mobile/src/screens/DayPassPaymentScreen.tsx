@@ -6,7 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { color, font, radius, space, shadow } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { passOf, passLabel } from '../data/passPresets';
+import { addMinutes, formatOpenWindow } from '../utils/format';
 import { AvatarIcon } from '../components/primitives/Avatar';
+import { SlotGrid } from '../components/booking/SlotGrid';
 import { BottomBar } from '../components/booking/BottomBar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'DayPassPayment'>;
@@ -32,7 +34,17 @@ export default function DayPassPaymentScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'DayPassPayment'>>();
   const kind = route.params.kind;
   const pass = passOf(kind);
+  const schedule = pass.schedule;
   const [method, setMethod] = useState('wallet');
+  // Chọn khung giờ trong các giờ do sân quy định; mặc định khung trống đầu tiên.
+  const [slotId, setSlotId] = useState<string | null>(
+    () => schedule.slots.find(s => s.state === 'free')?.id ?? null,
+  );
+
+  const selectedSlot = schedule.slots.find(s => s.id === slotId);
+  const selectedRange = selectedSlot
+    ? `${selectedSlot.time}–${addMinutes(selectedSlot.time, schedule.sessionMinutes)}`
+    : null;
 
   return (
     <View style={styles.root}>
@@ -46,8 +58,13 @@ export default function DayPassPaymentScreen() {
 
         <Text style={styles.section}>Giờ đặt</Text>
         <View style={styles.card}>
-          <Row label="Thời gian" value={pass.bookingTime} />
-          <Row label="Hiệu lực" value={'Trong ngày · ' + pass.validDate} last />
+          <Row label="Ngày" value={schedule.date} />
+          <Row label="Khung mở" value={formatOpenWindow(schedule)} />
+          <Row label="Đã chọn" value={selectedRange ? schedule.date + ' · ' + selectedRange : 'Chưa chọn giờ'} last />
+        </View>
+        <Text style={styles.pickCaption}>Chọn khung giờ theo giờ sân quy định</Text>
+        <View style={styles.slotWrap}>
+          <SlotGrid slots={schedule.slots} selectedId={slotId} onSelect={setSlotId} />
         </View>
 
         <Text style={styles.section}>Phương thức thanh toán</Text>
@@ -81,9 +98,10 @@ export default function DayPassPaymentScreen() {
       </ScrollView>
 
       <BottomBar
-        summary="Thanh toán an toàn"
+        summary={selectedRange ? schedule.date + ' · ' + selectedRange : 'Chọn khung giờ'}
         priceLabel={pass.priceLabel}
         ctaLabel="Thanh toán"
+        ctaDisabled={!selectedSlot}
         onPress={() => nav.navigate('DayPassConfirm', { kind })}
       />
     </View>
@@ -93,6 +111,8 @@ export default function DayPassPaymentScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.bg },
   section: { ...font.section, color: color.ink, marginTop: 8, marginBottom: 12 },
+  pickCaption: { ...font.sub, color: color.textMuted, fontWeight: '600', marginTop: 14, marginBottom: 10 },
+  slotWrap: { backgroundColor: color.surface, borderRadius: radius.card, padding: 16, ...shadow.card },
   card: { backgroundColor: color.surface, borderRadius: radius.card, paddingHorizontal: 16, ...shadow.card },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#ECEAE5' },
   rowLast: { borderBottomWidth: 0 },
