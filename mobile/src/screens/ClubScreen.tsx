@@ -1,6 +1,8 @@
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/Screen';
 import { IconButton } from '../components/primitives/IconButton';
 import { ClubCard } from '../components/cards/ClubCard';
@@ -11,13 +13,55 @@ import { myClubs, discoverClubs, matches, clubPass } from '../data/mock';
 import { CLUB_CARD_PROPS } from '../data/passPresets';
 import { usePasses } from '../state/PassContext';
 import { RootStackParamList } from '../navigation/types';
-import { color, font, space } from '../theme/tokens';
+import { color, font, radius, space, shadow } from '../theme/tokens';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ClubScreen() {
   const nav = useNavigation<Nav>();
   const { active } = usePasses();
+  // Tài khoản mời truy cập: chưa có câu lạc bộ → hiện 2 lựa chọn Tạo / Tham gia.
+  const [hasClubs, setHasClubs] = useState(false);
+
+  if (!hasClubs) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Câu lạc bộ</Text>
+          </View>
+          <View style={styles.gutter}>
+            <Text style={styles.lead}>Bạn chưa tham gia câu lạc bộ nào. Bắt đầu bằng cách:</Text>
+
+            <Pressable style={styles.optCard} onPress={() => setHasClubs(true)} accessibilityRole="button" accessibilityLabel="Tạo Club">
+              <View style={[styles.optIcon, { backgroundColor: color.ink }]}>
+                <Ionicons name="add" size={24} color={color.volt} />
+              </View>
+              <View style={styles.optMid}>
+                <Text style={styles.optTitle}>Tạo Club</Text>
+                <Text style={styles.optSub}>Làm chủ hội — mời thành viên, quản lý quỹ & chương trình</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={color.navIdle} />
+            </Pressable>
+
+            <Pressable style={styles.optCard} onPress={() => setHasClubs(true)} accessibilityRole="button" accessibilityLabel="Tham gia Club">
+              <View style={[styles.optIcon, { backgroundColor: color.volt }]}>
+                <Ionicons name="people" size={22} color={color.ink} />
+              </View>
+              <View style={styles.optMid}>
+                <Text style={styles.optTitle}>Tham gia Club</Text>
+                <Text style={styles.optSub}>Tìm và tham gia câu lạc bộ gần bạn</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={color.navIdle} />
+            </Pressable>
+
+            <Text style={styles.section}>Khám phá CLB</Text>
+            {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => setHasClubs(true)} />)}
+          </View>
+        </ScrollView>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -33,7 +77,7 @@ export default function ClubScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 13, paddingHorizontal: space.xl }}
         >
-          {myClubs.map(c => <ClubCard key={c.id} club={c} onPress={() => {}} />)}
+          {myClubs.map(c => <ClubCard key={c.id} club={c} onPress={() => nav.navigate('ClubDetail', { id: c.id, name: c.name })} />)}
         </ScrollView>
 
         <View style={styles.gutter}>
@@ -84,4 +128,15 @@ const styles = StyleSheet.create({
   section: { ...font.section, color: color.ink, marginTop: 26, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sub: { ...font.sub, color: color.textMuted, fontWeight: '600' },
+
+  // Empty state (tài khoản mời truy cập)
+  lead: { ...font.body, color: color.textMuted, marginTop: 12, marginBottom: 4 },
+  optCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12,
+    backgroundColor: color.surface, borderRadius: radius.card, padding: 16, ...shadow.card,
+  },
+  optIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  optMid: { flex: 1 },
+  optTitle: { ...font.cardTitle, color: color.ink },
+  optSub: { ...font.sub, color: color.textMuted, marginTop: 3, lineHeight: 17 },
 });

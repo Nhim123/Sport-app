@@ -2,6 +2,7 @@ import { grad } from '../theme/tokens';
 import {
   Venue, FilterTab, Slot, DayItem,
   Booking, GymClass, Membership, DayPass, CourtSchedule, Club, Match, MenuItem, ProfileStat, Promo,
+  ClubFund, ClubMember, ClubProgram,
 } from '../types';
 
 // ---- Promo (thanh quảng cáo Home) — đổi theo bộ môn đang chọn ----
@@ -20,6 +21,13 @@ export const promos: Promo[] = [
   { id: 'gy-promo2', tab: 'gym', badge: 'FREE', title: 'Buổi tập thử cùng PT miễn phí',
     subtitle: 'Đặt lịch với huấn luyện viên cá nhân tuần đầu', ctaLabel: 'Đặt lịch',
     gradient: grad.dark, emoji: '💪' },
+  // Bóng đá
+  { id: 'fb-promo1', tab: 'football', badge: 'ƯU ĐÃI', title: 'Giảm 20% sân bóng khung tối',
+    subtitle: 'Đặt sân 5/sân 7 khung 20h–22h các ngày trong tuần', ctaLabel: 'Nhận ưu đãi',
+    gradient: grad.green, emoji: '⚽' },
+  { id: 'fb-promo2', tab: 'football', badge: 'GIẢI ĐẤU', title: 'Giải phủi Quận 7 mở đăng ký',
+    subtitle: 'Thể thức sân 7, thi đấu cuối tuần — giải thưởng hấp dẫn', ctaLabel: 'Đăng ký ngay',
+    gradient: grad.dark, emoji: '🏆' },
   // Chung (hiện ở mọi tab)
   { id: 'all-promo1', tab: 'all', badge: 'FREE', title: 'Rủ bạn — tặng 1 buổi chơi',
     subtitle: 'Mời bạn mới, cả hai nhận voucher 50K', ctaLabel: 'Mời bạn',
@@ -47,6 +55,16 @@ export const venues: Venue[] = [
     district: 'Quận 7', distanceKm: 0.9, rating: 4.8, reviews: 512, priceLabel: '599K/tháng', heroTag: 'GÓI THÁNG 599K' },
   { id: 'gy2', name: 'Flex Zone Gym', sport: 'gym', gradient: grad.olive,
     district: 'Quận 4', distanceKm: 3.1, rating: 4.6, reviews: 203, priceLabel: '499K/tháng' },
+  { id: 'fb1', name: 'Sân bóng Thành Đạt', sport: 'football', gradient: grad.green,
+    district: 'Quận 7', distanceKm: 1.8, rating: 4.8, reviews: 240, priceLabel: '300K/giờ', heroTag: 'CÒN 2 SÂN 5 TRỐNG',
+    pricePerHour: 300000, courts: 5, openTime: '6:00',
+    amenities: ['🚿 Phòng tắm', '🅿️ Bãi xe', '💧 Nước', '👟 Cho thuê giày', '💡 Đèn ban đêm'],
+    about: 'Sân cỏ nhân tạo tiêu chuẩn (sân 5 & sân 7), mặt cỏ mới, đèn thi đấu ban đêm. Đặt nhanh theo khung giờ trống.' },
+  { id: 'fb2', name: 'Arena Mini Football', sport: 'football', gradient: grad.olive,
+    district: 'Quận 4', distanceKm: 3.5, rating: 4.6, reviews: 132, priceLabel: '280K/giờ',
+    pricePerHour: 280000, courts: 3, openTime: '7:00',
+    amenities: ['🚿 Phòng tắm', '🅿️ Bãi xe', '💧 Nước', '💡 Đèn ban đêm'],
+    about: 'Cụm sân mini trong nhà, thoáng mát, phù hợp đá phủi buổi tối. Có khu khán đài nhỏ.' },
 ];
 
 const byId = (id: string) => venues.find(v => v.id === id)!;
@@ -54,15 +72,19 @@ export const getVenue = (id: string): Venue | undefined => venues.find(v => v.id
 
 export function pickHero(tab: FilterTab): Venue {
   if (tab === 'gym') return byId('gy1');
+  if (tab === 'football') return byId('fb1');
   return byId('pk1');
 }
 export function filterVenues(tab: FilterTab): Venue[] {
   if (tab === 'pickle') return [byId('pk1'), byId('pk2')];
   if (tab === 'gym') return [byId('gy1'), byId('gy2')];
-  return [byId('gy1'), byId('pk2')];
+  if (tab === 'football') return [byId('fb1'), byId('fb2')];
+  return [byId('pk1'), byId('gy1'), byId('fb1')];
 }
 export function listTitle(tab: FilterTab): string {
-  return tab === 'gym' ? 'Phòng gym gần bạn' : 'Sân gần bạn';
+  if (tab === 'gym') return 'Phòng gym gần bạn';
+  if (tab === 'football') return 'Sân bóng đá gần bạn';
+  return 'Sân gần bạn';
 }
 
 export const days: DayItem[] = [
@@ -138,12 +160,41 @@ export const gymClasses: GymClass[] = [
 
 // ---- Club ----
 export const myClubs: Club[] = [
-  { id: 'cl1', name: 'Q7 Smashers 🏓', gradient: grad.dark, members: 48, note: 'buổi tiếp: T7 18:00', joined: true },
-  { id: 'cl2', name: 'Sáng Sớm Gym 🏋️', gradient: grad.green, members: 32, note: '5:30 mỗi sáng', joined: true },
+  { id: 'cl1', name: 'Q7 Smashers 🏓', gradient: grad.dark, members: 48, note: 'buổi tiếp: T7 18:00', joined: true, myRole: 'owner' },
+  { id: 'cl2', name: 'Sáng Sớm Gym 🏋️', gradient: grad.green, members: 32, note: '5:30 mỗi sáng', joined: true, myRole: 'member' },
 ];
+export const getClub = (id: string): Club | undefined =>
+  [...myClubs, ...discoverClubs].find(c => c.id === id);
 export const discoverClubs: Club[] = [
   { id: 'cl3', name: 'Nhà Bè Pickleball', gradient: grad.green, members: 120, note: 'gần bạn 1.2km' },
   { id: 'cl4', name: 'Gym Buddies Q7', gradient: grad.olive, members: 86, note: 'tập nhóm buổi tối' },
+];
+
+// ---- Chức năng chi tiết CLB (dùng chung cho demo) ----
+export const clubFund: ClubFund = {
+  balance: 4820000, income: 6200000, expense: 1380000,
+  txs: [
+    { id: 't1', label: 'Đóng quỹ tháng 8 · 24 thành viên', amount: 2400000, kind: 'in', date: '01/08' },
+    { id: 't2', label: 'Tài trợ giải nội bộ', amount: 1500000, kind: 'in', date: '10/08' },
+    { id: 't3', label: 'Thuê sân giao lưu T7', amount: 640000, kind: 'out', date: '03/08' },
+    { id: 't4', label: 'Mua bóng & nước', amount: 320000, kind: 'out', date: '05/08' },
+    { id: 't5', label: 'In áo đồng phục', amount: 420000, kind: 'out', date: '12/08' },
+  ],
+};
+
+export const clubMembers: ClubMember[] = [
+  { id: 'u1', name: 'Minh Khang', initials: 'MK', role: 'Chủ nhiệm', note: 'Sáng lập CLB' },
+  { id: 'u2', name: 'Thu Hà', initials: 'TH', role: 'Quản lý', note: 'Phụ trách quỹ' },
+  { id: 'u3', name: 'Quốc Anh', initials: 'QA', role: 'Thành viên' },
+  { id: 'u4', name: 'Bảo Trân', initials: 'BT', role: 'Thành viên' },
+  { id: 'u5', name: 'Duy Phúc', initials: 'DP', role: 'Thành viên' },
+  { id: 'u6', name: 'Gia Hân', initials: 'GH', role: 'Thành viên' },
+];
+
+export const clubPrograms: ClubProgram[] = [
+  { id: 'pg1', title: 'Buổi tập kỹ thuật', date: 'T7, 16/08', time: '18:00–20:00', place: 'Sân Q7', joined: 12, capacity: 16 },
+  { id: 'pg2', title: 'Giao lưu với CLB bạn', date: 'CN, 17/08', time: '08:00–11:00', place: 'Nhà Bè', joined: 20, capacity: 24, fee: '30K' },
+  { id: 'pg3', title: 'Giải nội bộ tháng 8', date: 'T7, 30/08', time: 'Cả ngày', place: 'Pickleball Center Q7', joined: 28, capacity: 32, fee: '50K' },
 ];
 export const matches: Match[] = [
   { id: 'm1', title: 'Cần 2 người · Đôi nam nữ', venue: 'Pickleball Center Q7 · Hôm nay 18:00',

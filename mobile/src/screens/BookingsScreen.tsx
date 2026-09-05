@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
-import { FlatList, View, Text, StyleSheet } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, View, Text, StyleSheet, ListRenderItemInfo } from 'react-native';
 import { Screen } from '../components/Screen';
 import { FilterChipGroup, ChipOption } from '../components/chips/FilterChipGroup';
 import { BookingCard } from '../components/cards/BookingCard';
 import { bookings } from '../data/mock';
-import { BookingStatus } from '../types';
+import { Booking, BookingStatus } from '../types';
 import { color, font, space } from '../theme/tokens';
 
 const SEGMENTS: ChipOption<BookingStatus>[] = [
@@ -12,15 +12,22 @@ const SEGMENTS: ChipOption<BookingStatus>[] = [
   { key: 'past', label: 'Đã qua' },
 ];
 
+const noop = () => {};
+const keyOf = (b: Booking) => b.id;
+
 export default function BookingsScreen() {
   const [seg, setSeg] = useState<BookingStatus>('upcoming');
   const data = useMemo(() => bookings.filter(b => b.status === seg), [seg]);
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<Booking>) => <BookingCard booking={item} onShowQR={noop} onCancel={noop} />,
+    [],
+  );
 
   return (
     <Screen>
       <FlatList
         data={data}
-        keyExtractor={b => b.id}
+        keyExtractor={keyOf}
         contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -30,7 +37,7 @@ export default function BookingsScreen() {
             <View style={{ height: 18 }} />
           </View>
         }
-        renderItem={({ item }) => <BookingCard booking={item} onShowQR={() => {}} onCancel={() => {}} />}
+        renderItem={renderItem}
         ListEmptyComponent={<Text style={styles.empty}>Chưa có lịch đặt nào.</Text>}
       />
     </Screen>

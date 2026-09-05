@@ -16,4 +16,5 @@ export type RootStackParamList = {
   Gym: { mode?: GymMode } | undefined;
   DayPassPayment: { order: PaymentOrder };
   DayPassConfirm: { order: PaymentOrder };
+  ClubDetail: { id: string; name: string };
 };
