@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { color, radius, font, space } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
-import { getVenue } from '../data/mock';
+import { getVenue, dayPass } from '../data/mock';
 import { Tag } from '../components/primitives/Tag';
 import { PriceText } from '../components/primitives/PriceText';
 import { StatCell } from '../components/primitives/StatCell';
@@ -106,7 +106,21 @@ export default function VenueDetailScreen() {
             style={[styles.btn, styles.btnOutline]}
             accessibilityRole="button"
             accessibilityLabel="Đặt vé cá nhân"
-            onPress={() => nav.replace('DayPassPayment', { kind: 'personal' })}
+            onPress={() => nav.replace('DayPassPayment', {
+              order: {
+                purpose: 'daypass',
+                title: 'Vé ngày cá nhân',
+                brand: dayPass.brand,
+                itemLabel: 'Cơ sở',
+                itemValue: dayPass.venue,
+                address: dayPass.address,
+                date: dayPass.schedule.date,
+                priceLabel: dayPass.priceLabel,
+                code: dayPass.passCode,
+                schedule: dayPass.schedule,
+                passKind: 'personal',
+              },
+            })}
           >
             <Text style={styles.btnOutlineTxt}>Đặt vé cá nhân</Text>
           </Pressable>
