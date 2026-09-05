@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { color, font, space } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { getVenue, slots, days } from '../data/mock';
+import { addMinutes } from '../utils/format';
 import { useBookingSelection } from '../hooks/useBookingSelection';
 import { DayPicker } from '../components/booking/DayPicker';
 import { SlotGrid } from '../components/booking/SlotGrid';
@@ -17,6 +18,25 @@ export default function BookingScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Booking'>>();
   const venue = getVenue(params.venueId);
   const b = useBookingSelection(slots, days, venue?.pricePerHour ?? 80000);
+
+  const goPay = () => {
+    const slot = slots.find(s => s.id === b.slotId);
+    const day = days.find(d => d.key === b.dayKey);
+    if (!venue || !slot || !day || b.court == null) return;
+    nav.navigate('DayPassPayment', {
+      order: {
+        purpose: 'court',
+        title: 'Đặt sân ' + venue.name,
+        brand: venue.name,
+        itemLabel: 'Sân',
+        itemValue: 'Sân ' + b.court,
+        date: day.dow + ', ' + day.day,
+        priceLabel: b.priceLabel,
+        code: 'PB' + Math.random().toString(36).slice(2, 7).toUpperCase(),
+        fixedTime: slot.time + '–' + addMinutes(slot.time, 60),
+      },
+    });
+  };
 
   return (
     <View style={styles.root}>
@@ -36,7 +56,7 @@ export default function BookingScreen() {
         priceLabel={b.priceLabel}
         ctaLabel="Thanh toán qua QR"
         ctaDisabled={!b.canPay}
-        onPress={() => nav.navigate('MainTabs', { screen: 'Bookings' })}
+        onPress={goPay}
       />
     </View>
   );

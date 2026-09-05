@@ -5,7 +5,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { color, font, radius, space, shadow } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
-import { passOf, passLabel } from '../data/passPresets';
 import { addMinutes, formatOpenWindow } from '../utils/format';
 import { AvatarIcon } from '../components/primitives/Avatar';
 import { SlotGrid } from '../components/booking/SlotGrid';
@@ -29,43 +28,55 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
   );
 }
 
-export default function DayPassPaymentScreen() {
+/** Màn thanh toán chung cho mọi tính năng (đặt sân / vé ngày / vé CLB). */
+export default function PaymentScreen() {
   const nav = useNavigation<Nav>();
-  const route = useRoute<RouteProp<RootStackParamList, 'DayPassPayment'>>();
-  const kind = route.params.kind;
-  const pass = passOf(kind);
-  const schedule = pass.schedule;
+  const { order } = useRoute<RouteProp<RootStackParamList, 'DayPassPayment'>>().params;
   const [method, setMethod] = useState('wallet');
-  // Chọn khung giờ trong các giờ do sân quy định; mặc định khung trống đầu tiên.
+
+  const sched = order.schedule;
+  const needPick = !order.fixedTime && !!sched;   // vé: chọn giờ tại đây; đặt sân: giờ cố định
   const [slotId, setSlotId] = useState<string | null>(
-    () => schedule.slots.find(s => s.state === 'free')?.id ?? null,
+    () => (needPick ? sched!.slots.find(s => s.state === 'free')?.id ?? null : null),
   );
 
-  const selectedSlot = schedule.slots.find(s => s.id === slotId);
-  const selectedRange = selectedSlot
-    ? `${selectedSlot.time}–${addMinutes(selectedSlot.time, schedule.sessionMinutes)}`
-    : null;
+  const selectedSlot = sched?.slots.find(s => s.id === slotId);
+  const chosenRange =
+    order.fixedTime ??
+    (selectedSlot ? `${selectedSlot.time}–${addMinutes(selectedSlot.time, sched!.sessionMinutes)}` : null);
+  const canPay = !!chosenRange;
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
-        <Text style={styles.section}>Thông tin sân</Text>
+        <Text style={styles.title}>{order.title}</Text>
+
+        <Text style={styles.section}>Thông tin</Text>
         <View style={styles.card}>
-          <Row label="Loại vé" value={passLabel(kind)} />
-          <Row label={kind === 'club' ? 'Sân' : 'Cơ sở'} value={pass.venue} />
-          <Row label="Địa chỉ" value={pass.address} last />
+          <Row label={order.itemLabel} value={order.itemValue} last={!order.address} />
+          {order.address ? <Row label="Địa chỉ" value={order.address} last /> : null}
         </View>
 
         <Text style={styles.section}>Giờ đặt</Text>
         <View style={styles.card}>
-          <Row label="Ngày" value={schedule.date} />
-          <Row label="Khung mở" value={formatOpenWindow(schedule)} />
-          <Row label="Đã chọn" value={selectedRange ? schedule.date + ' · ' + selectedRange : 'Chưa chọn giờ'} last />
+          <Row label="Ngày" value={order.date} />
+          {needPick ? (
+            <>
+              <Row label="Khung mở" value={formatOpenWindow(sched!)} />
+              <Row label="Đã chọn" value={chosenRange ? order.date + ' · ' + chosenRange : 'Chưa chọn giờ'} last />
+            </>
+          ) : (
+            <Row label="Giờ" value={order.fixedTime ?? '—'} last />
+          )}
         </View>
-        <Text style={styles.pickCaption}>Chọn khung giờ theo giờ sân quy định</Text>
-        <View style={styles.slotWrap}>
-          <SlotGrid slots={schedule.slots} selectedId={slotId} onSelect={setSlotId} />
-        </View>
+        {needPick ? (
+          <>
+            <Text style={styles.pickCaption}>Chọn khung giờ theo giờ sân quy định</Text>
+            <View style={styles.slotWrap}>
+              <SlotGrid slots={sched!.slots} selectedId={slotId} onSelect={setSlotId} />
+            </View>
+          </>
+        ) : null}
 
         <Text style={styles.section}>Phương thức thanh toán</Text>
         <View style={styles.card}>
@@ -93,16 +104,16 @@ export default function DayPassPaymentScreen() {
 
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Tổng thanh toán</Text>
-          <Text style={styles.totalValue}>{pass.priceLabel}</Text>
+          <Text style={styles.totalValue}>{order.priceLabel}</Text>
         </View>
       </ScrollView>
 
       <BottomBar
-        summary={selectedRange ? schedule.date + ' · ' + selectedRange : 'Chọn khung giờ'}
-        priceLabel={pass.priceLabel}
+        summary={chosenRange ? order.date + ' · ' + chosenRange : 'Chọn khung giờ'}
+        priceLabel={order.priceLabel}
         ctaLabel="Thanh toán"
-        ctaDisabled={!selectedSlot}
-        onPress={() => nav.navigate('DayPassConfirm', { kind })}
+        ctaDisabled={!canPay}
+        onPress={() => nav.navigate('DayPassConfirm', { order: { ...order, fixedTime: chosenRange ?? undefined } })}
       />
     </View>
   );
@@ -110,7 +121,8 @@ export default function DayPassPaymentScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.bg },
-  section: { ...font.section, color: color.ink, marginTop: 8, marginBottom: 12 },
+  title: { ...font.h2, color: color.ink, marginTop: 4 },
+  section: { ...font.section, color: color.ink, marginTop: 22, marginBottom: 12 },
   pickCaption: { ...font.sub, color: color.textMuted, fontWeight: '600', marginTop: 14, marginBottom: 10 },
   slotWrap: { backgroundColor: color.surface, borderRadius: radius.card, padding: 16, ...shadow.card },
   card: { backgroundColor: color.surface, borderRadius: radius.card, paddingHorizontal: 16, ...shadow.card },

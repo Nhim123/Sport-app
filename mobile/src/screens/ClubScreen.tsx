@@ -41,7 +41,21 @@ export default function ClubScreen() {
           <DayPassCard
             pass={clubPass}
             status={active.club ? 'active' : 'booking'}
-            onBook={() => nav.navigate('DayPassPayment', { kind: 'club' })}
+            onBook={() => nav.navigate('DayPassPayment', {
+              order: {
+                purpose: 'club',
+                title: 'Vé sinh hoạt câu lạc bộ',
+                brand: clubPass.brand,
+                itemLabel: 'Sân',
+                itemValue: clubPass.venue,
+                address: clubPass.address,
+                date: clubPass.schedule.date,
+                priceLabel: clubPass.priceLabel,
+                code: clubPass.passCode,
+                schedule: clubPass.schedule,
+                passKind: 'club',
+              },
+            })}
             {...CLUB_CARD_PROPS}
           />
         </View>

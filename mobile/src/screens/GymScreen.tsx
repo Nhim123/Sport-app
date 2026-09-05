@@ -59,7 +59,21 @@ export default function GymScreen() {
         <DayPassCard
           pass={dpPass}
           status={dpActive ? 'active' : 'booking'}
-          onBook={() => nav.navigate('DayPassPayment', { kind: 'personal' })}
+          onBook={() => nav.navigate('DayPassPayment', {
+            order: {
+              purpose: 'daypass',
+              title: 'Vé ngày cá nhân',
+              brand: dayPass.brand,
+              itemLabel: 'Cơ sở',
+              itemValue: dayPass.venue,
+              address: dayPass.address,
+              date: dayPass.schedule.date,
+              priceLabel: dayPass.priceLabel,
+              code: dayPass.passCode,
+              schedule: dayPass.schedule,
+              passKind: 'personal',
+            },
+          })}
           {...clubProps}
         />
       )}

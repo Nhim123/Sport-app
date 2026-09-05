@@ -123,3 +123,25 @@ export interface Promo {
   gradient: readonly [string, string];     // nền banner
   emoji?: string;                          // trang trí góc phải
 }
+
+// ---- Thanh toán chung (mọi tính năng dồn về 1 màn) ----
+export type PaymentPurpose = 'court' | 'daypass' | 'club';
+/**
+ * Đơn hàng gửi vào màn thanh toán chung. Nút ở mỗi tính năng tự dựng order rồi
+ * điều hướng tới `DayPassPayment`. `fixedTime` = giờ đã chọn sẵn (đặt sân);
+ * `schedule` = để chọn giờ ngay trên màn thanh toán (vé ngày/CLB).
+ */
+export interface PaymentOrder {
+  purpose: PaymentPurpose;
+  title: string;                           // "Đặt sân Pickleball Center Q7" | "Vé ngày cá nhân"
+  brand: string;                           // đơn vị cung cấp — hiện ở biên nhận
+  itemLabel: string;                       // "Sân" | "Cơ sở"
+  itemValue: string;                       // "Sân 3" | "CityGym Q7"
+  address?: string;
+  date: string;                            // "Hôm nay" | "CN, 27"
+  priceLabel: string;                      // "80.000₫"
+  code: string;                            // mã đơn/vé — hiện ở biên nhận
+  fixedTime?: string;                      // "18:00–19:00" khi đã chọn giờ trước
+  schedule?: CourtSchedule;                // nguồn khung giờ khi chọn tại màn thanh toán
+  passKind?: DayPassKind;                  // có = kích hoạt vé khi thanh toán xong
+}
