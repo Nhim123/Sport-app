@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, View, ListRenderItemInfo } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
@@ -19,6 +19,7 @@ import { space } from '../theme/tokens';
 const TABS: ChipOption<FilterTab>[] = [
   { key: 'all', label: 'Tất cả' },
   { key: 'pickle', label: '🏓 Pickleball' },
+  { key: 'football', label: '⚽ Bóng đá' },
   { key: 'gym', label: '🏋️ Gym' },
 ];
 
@@ -40,14 +41,23 @@ export default function HomeScreen() {
     nav.navigate('MainTabs', { screen: 'Search' });
   }, [nav]);
 
+  const keyExtractor = useCallback((v: Venue) => v.id, []);
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<Venue>) => <VenueCard venue={item} onPress={openVenue} />,
+    [openVenue],
+  );
+
   return (
     <Screen>
       <FlatList
         data={venues}
-        keyExtractor={v => v.id}
+        keyExtractor={keyExtractor}
         contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => <VenueCard venue={item} onPress={() => openVenue(item)} />}
+        renderItem={renderItem}
+        initialNumToRender={6}
+        maxToRenderPerBatch={8}
+        windowSize={9}
         ListHeaderComponent={
           <View>
             <HomeHeader greeting="Chào buổi sáng 👋" name="Minh Khang" avatarIcon="person" />

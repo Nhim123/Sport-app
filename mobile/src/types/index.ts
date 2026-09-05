@@ -1,4 +1,4 @@
-export type Sport = 'pickle' | 'gym';
+export type Sport = 'pickle' | 'gym' | 'football';
 export type FilterTab = 'all' | Sport;
 
 export interface Venue {
@@ -89,6 +89,8 @@ export interface Membership {
 
 // ---- Club ----
 export type MatchLevel = 'Trung cấp' | 'Mọi trình độ' | 'Nâng cao';
+export type ClubViewerRole = 'owner' | 'member';   // vai trò của mình trong CLB: chủ hội | hội viên
+
 export interface Club {
   id: string;
   name: string;               // "Q7 Smashers 🏓"
@@ -96,6 +98,23 @@ export interface Club {
   members: number;
   note: string;               // "buổi tiếp: T7 18:00" | "gần bạn 1.2km"
   joined?: boolean;
+  myRole?: ClubViewerRole;    // chỉ có khi đã tham gia
+}
+
+// ---- Chức năng chi tiết CLB ----
+export type ClubTab = 'fund' | 'members' | 'programs';
+
+export interface ClubFundTx {
+  id: string; label: string; amount: number; kind: 'in' | 'out'; date: string;
+}
+export interface ClubFund { balance: number; income: number; expense: number; txs: ClubFundTx[] }
+
+export type ClubRole = 'Chủ nhiệm' | 'Quản lý' | 'Thành viên';
+export interface ClubMember { id: string; name: string; initials: string; role: ClubRole; note?: string }
+
+export interface ClubProgram {
+  id: string; title: string; date: string; time: string; place: string;
+  joined: number; capacity: number; fee?: string;
 }
 export interface Match {
   id: string;

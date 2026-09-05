@@ -6,16 +6,17 @@ import { Venue } from '../../types';
 import { PriceText } from '../primitives/PriceText';
 import { IconButton } from '../primitives/IconButton';
 
-function VenueCardBase({ venue, onPress }: { venue: Venue; onPress: () => void }) {
+function VenueCardBase({ venue, onPress }: { venue: Venue; onPress: (venue: Venue) => void }) {
+  const handle = () => onPress(venue);
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={styles.card}>
+    <Pressable onPress={handle} accessibilityRole="button" style={styles.card}>
       <LinearGradient colors={venue.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.thumb} />
       <View style={styles.mid}>
         <Text style={styles.name} numberOfLines={1}>{venue.name}</Text>
         <Text style={styles.sub} numberOfLines={1}>{venue.district} · {venue.distanceKm}km · ⭐ {venue.rating}</Text>
         <PriceText value={venue.priceLabel} size={14} />
       </View>
-      <IconButton name="arrow-forward" onPress={onPress} />
+      <IconButton name="arrow-forward" onPress={handle} />
     </Pressable>
   );
 }

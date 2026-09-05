@@ -1,6 +1,6 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import {
-  View, FlatList, StyleSheet, useWindowDimensions,
+  View, ScrollView, StyleSheet, useWindowDimensions,
   NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { PromoCard } from '../cards/PromoCard';
@@ -13,65 +13,68 @@ const INTERVAL_MS = 4000;   // thời gian mỗi banner trước khi tự chuy�
 interface Props { promos: Promo[]; onPressPromo: (promo: Promo) => void; intervalMs?: number }
 
 /**
- * Thanh quảng cáo Home: FlatList ngang snap-từng-trang, bố cục cố định (không có chấm phân trang).
- * Tự động chạy vòng lặp theo thời gian; đồng bộ khi vuốt tay và tạm dừng trong lúc đang vuốt.
+ * Thanh quảng cáo Home: ScrollView ngang snap-từng-trang, bố cục cố định, tự chạy vòng lặp.
+ * Dùng ScrollView (chỉ 2–3 banner) thay FlatList để tránh cảnh báo VirtualizedList "slow to update";
+ * chỉ số trang giữ trong ref nên autoplay không gây re-render.
  */
 function PromoCarouselBase({ promos, onPressPromo, intervalMs = INTERVAL_MS }: Props) {
   const { width } = useWindowDimensions();
   const cardWidth = width - space.xl * 2;          // trừ padding ngang 24 hai bên của Home
   const step = cardWidth + GAP;
-  const listRef = useRef<FlatList<Promo>>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const indexRef = useRef(0);
   const dragging = useRef(false);
-  const [index, setIndex] = useState(0);
 
   // Đổi bộ môn → về banner đầu.
   useEffect(() => {
-    setIndex(0);
-    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    indexRef.current = 0;
+    scrollRef.current?.scrollTo({ x: 0, animated: false });
   }, [promos]);
 
-  // Tự động chuyển banner theo vòng lặp; timer khởi động lại mỗi khi index đổi (kể cả sau khi vuốt tay).
+  // Tự chuyển banner theo vòng lặp; dùng ref nên không setState mỗi chu kỳ.
   useEffect(() => {
     if (promos.length <= 1) return;
-    const t = setTimeout(() => {
+    const timer = setInterval(() => {
       if (dragging.current) return;
-      const next = (index + 1) % promos.length;
-      listRef.current?.scrollToOffset({ offset: next * step, animated: true });
-      setIndex(next);
+      const next = (indexRef.current + 1) % promos.length;
+      indexRef.current = next;
+      scrollRef.current?.scrollTo({ x: next * step, animated: true });
     }, intervalMs);
-    return () => clearTimeout(t);
-  }, [index, promos, step, intervalMs]);
+    return () => clearInterval(timer);
+  }, [promos, step, intervalMs]);
 
-  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onBeginDrag = useCallback(() => { dragging.current = true; }, []);
+  const onMomentumEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     dragging.current = false;
-    setIndex(Math.round(e.nativeEvent.contentOffset.x / step));
-  };
+    indexRef.current = Math.round(e.nativeEvent.contentOffset.x / step);
+  }, [step]);
 
   return (
     <View style={styles.wrap}>
-      <FlatList
-        ref={listRef}
-        data={promos}
-        keyExtractor={p => p.id}
+      <ScrollView
+        ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         snapToInterval={step}
         snapToAlignment="start"
         disableIntervalMomentum
-        onScrollBeginDrag={() => { dragging.current = true; }}
+        onScrollBeginDrag={onBeginDrag}
         onMomentumScrollEnd={onMomentumEnd}
-        ItemSeparatorComponent={() => <View style={{ width: GAP }} />}
-        renderItem={({ item }) => (
-          <PromoCard promo={item} width={cardWidth} onPress={() => onPressPromo(item)} />
-        )}
-      />
+      >
+        {promos.map((p, i) => (
+          <View key={p.id} style={i < promos.length - 1 ? styles.gap : undefined}>
+            <PromoCard promo={p} width={cardWidth} onPress={onPressPromo} />
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { marginTop: 16 },
+  gap: { marginRight: GAP },
 });
 
 export const PromoCarousel = memo(PromoCarouselBase);
