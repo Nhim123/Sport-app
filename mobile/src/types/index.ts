@@ -37,6 +37,19 @@ export interface Booking {
   status: BookingStatus;
 }
 
+// ---- Lịch tuần (màn Lịch) ----
+export type AttendStatus = 'done' | 'planned';   // đã tham dự | dự kiến tham dự
+export interface WeekEvent {
+  id: string;
+  dayKey: string;             // khớp DayItem.key trong `days`
+  time: string;               // "18:00–19:00" | "Cả sáng"
+  title: string;              // "Pickleball · Sân 3"
+  place: string;              // tên sân/cơ sở
+  sport: Sport;
+  status: AttendStatus;
+  forClub?: string;           // tên CLB nếu là hoạt động của câu lạc bộ
+}
+
 // ---- Gym / membership ----
 export interface GymClass {
   id: string;
@@ -94,6 +107,7 @@ export type ClubViewerRole = 'owner' | 'member';   // vai trò của mình trong
 export interface Club {
   id: string;
   name: string;               // "Q7 Smashers 🏓"
+  sports: Sport[];            // các bộ môn CLB triển khai (1 hoặc nhiều)
   gradient: readonly [string, string];
   members: number;
   note: string;               // "buổi tiếp: T7 18:00" | "gần bạn 1.2km"

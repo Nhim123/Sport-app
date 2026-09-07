@@ -3,10 +3,10 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/HomeScreen';
+import SearchScreen from '../screens/SearchScreen';
 import ClubScreen from '../screens/ClubScreen';
 import BookingsScreen from '../screens/BookingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { Placeholder } from '../screens/PlaceholderScreen';
 import { TabParamList } from './types';
 import { color, font } from '../theme/tokens';
 
@@ -14,8 +14,6 @@ import { color, font } from '../theme/tokens';
 // Dùng thanh tab tự vẽ thay cho TabBar mặc định của react-native-tab-view
 // (bản v3 không tương thích pager-view v8 nên TabBar mặc định bị crash).
 const Tab = createMaterialTopTabNavigator<TabParamList>();
-
-const SearchScreen = () => <Placeholder title="Tìm kiếm" />;
 
 const ICON: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
   Home: 'home', Search: 'search', Club: 'people', Bookings: 'calendar', Profile: 'person',

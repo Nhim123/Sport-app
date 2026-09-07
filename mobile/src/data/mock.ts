@@ -2,7 +2,7 @@ import { grad } from '../theme/tokens';
 import {
   Venue, FilterTab, Slot, DayItem,
   Booking, GymClass, Membership, DayPass, CourtSchedule, Club, Match, MenuItem, ProfileStat, Promo,
-  ClubFund, ClubMember, ClubProgram,
+  ClubFund, ClubMember, ClubProgram, WeekEvent,
 } from '../types';
 
 // ---- Promo (thanh quảng cáo Home) — đổi theo bộ môn đang chọn ----
@@ -98,6 +98,18 @@ const RAW = ['06:00', '07:00', '08:00', '09:00', '17:00', '18:00', '19:00', '20:
 const BOOKED = new Set([1, 3, 7]);
 export const slots: Slot[] = RAW.map((time, i) => ({ id: 's' + i, time, state: BOOKED.has(i) ? 'booked' : 'free' }));
 
+// ---- Lịch tuần (màn Lịch) ----
+// "Hôm nay" là T5 (d3): các buổi trước đó đã tham dự, từ hôm nay trở đi là dự kiến.
+export const todayKey = 'd3';
+export const weekEvents: WeekEvent[] = [
+  { id: 'we1', dayKey: 'd0', time: '18:00–19:00', title: 'Pickleball · Sân 3', place: 'Pickleball Center Q7', sport: 'pickle', status: 'done', forClub: 'Q7 Smashers 🏓' },
+  { id: 'we2', dayKey: 'd1', time: '05:30–06:30', title: 'Gym buổi sáng', place: 'CityGym Q7', sport: 'gym', status: 'done' },
+  { id: 'we3', dayKey: 'd2', time: '20:00–21:00', title: 'Bóng đá phủi · Sân 7', place: 'Sân bóng Thành Đạt', sport: 'football', status: 'done', forClub: 'FC Phủi Quận 7 ⚽' },
+  { id: 'we4', dayKey: 'd3', time: '19:00–20:00', title: 'Pickleball giao lưu', place: 'Smash Arena', sport: 'pickle', status: 'planned' },
+  { id: 'we5', dayKey: 'd4', time: '19:30–20:15', title: 'Lớp HIIT Burn', place: 'CityGym Q7', sport: 'gym', status: 'planned' },
+  { id: 'we6', dayKey: 'd5', time: 'Cả sáng', title: 'Giải nội bộ CLB', place: 'Pickleball Center Q7', sport: 'pickle', status: 'planned', forClub: 'Q7 Smashers 🏓' },
+];
+
 // ---- Bookings ----
 export const bookings: Booking[] = [
   { id: 'bk1', code: 'PB7X29', sport: 'pickle', venueName: 'Pickleball Center Q7 · Sân 3',
@@ -160,14 +172,15 @@ export const gymClasses: GymClass[] = [
 
 // ---- Club ----
 export const myClubs: Club[] = [
-  { id: 'cl1', name: 'Q7 Smashers 🏓', gradient: grad.dark, members: 48, note: 'buổi tiếp: T7 18:00', joined: true, myRole: 'owner' },
-  { id: 'cl2', name: 'Sáng Sớm Gym 🏋️', gradient: grad.green, members: 32, note: '5:30 mỗi sáng', joined: true, myRole: 'member' },
+  { id: 'cl1', name: 'Q7 Smashers 🏓', sports: ['pickle', 'football'], gradient: grad.dark, members: 48, note: 'buổi tiếp: T7 18:00', joined: true, myRole: 'owner' },
+  { id: 'cl2', name: 'Sáng Sớm Gym 🏋️', sports: ['gym'], gradient: grad.green, members: 32, note: '5:30 mỗi sáng', joined: true, myRole: 'member' },
 ];
 export const getClub = (id: string): Club | undefined =>
   [...myClubs, ...discoverClubs].find(c => c.id === id);
 export const discoverClubs: Club[] = [
-  { id: 'cl3', name: 'Nhà Bè Pickleball', gradient: grad.green, members: 120, note: 'gần bạn 1.2km' },
-  { id: 'cl4', name: 'Gym Buddies Q7', gradient: grad.olive, members: 86, note: 'tập nhóm buổi tối' },
+  { id: 'cl3', name: 'Nhà Bè Pickleball', sports: ['pickle'], gradient: grad.green, members: 120, note: 'gần bạn 1.2km' },
+  { id: 'cl4', name: 'Gym Buddies Q7', sports: ['gym', 'pickle'], gradient: grad.olive, members: 86, note: 'tập nhóm buổi tối' },
+  { id: 'cl5', name: 'FC Phủi Quận 7 ⚽', sports: ['football'], gradient: grad.dark, members: 64, note: 'đá tối T3 & T5' },
 ];
 
 // ---- Chức năng chi tiết CLB (dùng chung cho demo) ----
