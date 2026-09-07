@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { color, font, space } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { getVenue, slots, days, myClubs } from '../data/mock';
+import { addMinutes } from '../utils/format';
 import { useBookingSelection } from '../hooks/useBookingSelection';
 import { SegmentedTabs } from '../components/chips/SegmentedTabs';
 import { DayPicker } from '../components/booking/DayPicker';
@@ -29,6 +30,25 @@ export default function BookingScreen() {
   );
   const forLabel = bookFor === 'club' ? (myClub?.name ?? 'CLB') : 'Cá nhân';
   const summary = b.summary ? `${b.summary} · ${forLabel}` : undefined;
+
+  const goPay = () => {
+    const slot = slots.find(s => s.id === b.slotId);
+    const day = days.find(d => d.key === b.dayKey);
+    if (!venue || !slot || !day || b.court == null) return;
+    nav.navigate('DayPassPayment', {
+      order: {
+        purpose: 'court',
+        title: 'Đặt sân ' + venue.name,
+        brand: venue.name,
+        itemLabel: 'Sân',
+        itemValue: 'Sân ' + b.court + ' · ' + forLabel,
+        date: day.dow + ', ' + day.day,
+        priceLabel: b.priceLabel,
+        code: 'PB' + Math.random().toString(36).slice(2, 7).toUpperCase(),
+        fixedTime: slot.time + '–' + addMinutes(slot.time, 60),
+      },
+    });
+  };
 
   return (
     <View style={styles.root}>

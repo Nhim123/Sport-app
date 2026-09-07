@@ -38,8 +38,12 @@ export default function JoinClubScreen() {
     nav.navigate('ClubDetail', { id: c.id, name: c.name });
   };
 
-  // Giả lập quét QR: nhận diện CLB đầu tiên (mock, chưa gắn camera thật).
-  const simulateScan = () => join(discoverClubs[0]);
+  // Quét QR: khớp nội dung mã với mã CLB; không khớp (hoặc giả lập) thì lấy CLB đầu tiên.
+  const onScanned = (data?: string) => {
+    const key = data?.trim().toLowerCase();
+    const match = key ? discoverClubs.find(c => codeOf(c).toLowerCase() === key) : undefined;
+    join(match ?? discoverClubs[0]);
+  };
 
   return (
     <ScrollView
@@ -92,7 +96,7 @@ export default function JoinClubScreen() {
       <QrScanModal
         visible={scanOpen}
         onClose={() => setScanOpen(false)}
-        onScan={simulateScan}
+        onScan={onScanned}
         title="Quét mã QR CLB"
         hint="Đưa mã QR của CLB vào khung để tham gia."
       />
