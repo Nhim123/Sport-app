@@ -1,4 +1,4 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
 import { TabNavigator } from './TabNavigator';
 import VenueDetailScreen from '../screens/VenueDetailScreen';
@@ -7,10 +7,12 @@ import GymScreen from '../screens/GymScreen';
 import DayPassPaymentScreen from '../screens/DayPassPaymentScreen';
 import DayPassConfirmScreen from '../screens/DayPassConfirmScreen';
 import ClubDetailScreen from '../screens/ClubDetailScreen';
+import JoinClubScreen from '../screens/JoinClubScreen';
+import CreateClubScreen from '../screens/CreateClubScreen';
 import { PassProvider } from '../state/PassContext';
 import { color } from '../theme/tokens';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   return (
@@ -20,8 +22,11 @@ export function RootNavigator() {
           headerTintColor: color.ink,
           headerStyle: { backgroundColor: color.bg },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: color.bg },
+          cardStyle: { backgroundColor: color.bg },
           headerBackTitle: 'Quay lại',
+          // Vuốt từ mép trái để quay lại — chạy trên cả iOS và Android (JS stack).
+          gestureEnabled: true,
+          ...TransitionPresets.SlideFromRightIOS,
         }}
       >
         <Stack.Screen name="MainTabs" component={TabNavigator} options={{ headerShown: false }} />
@@ -31,15 +36,23 @@ export function RootNavigator() {
           options={{
             headerShown: false,
             presentation: 'transparentModal',
-            animation: 'fade',
-            contentStyle: { backgroundColor: 'transparent' },   // để lộ màn chính phía sau
+            cardStyle: { backgroundColor: 'transparent' },   // để lộ màn chính phía sau
+            cardOverlayEnabled: false,
+            gestureEnabled: false,                            // modal mờ dần, đóng bằng chạm nền
+            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
           }}
         />
         <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Đặt sân nhanh' }} />
         <Stack.Screen name="Gym" component={GymScreen} options={{ title: 'Thẻ hội viên' }} />
         <Stack.Screen name="DayPassPayment" component={DayPassPaymentScreen} options={{ title: 'Thanh toán' }} />
-        <Stack.Screen name="DayPassConfirm" component={DayPassConfirmScreen} options={{ title: 'Hoàn tất', headerBackVisible: false, gestureEnabled: false }} />
+        <Stack.Screen
+          name="DayPassConfirm"
+          component={DayPassConfirmScreen}
+          options={{ title: 'Hoàn tất', headerLeft: () => null, gestureEnabled: false }}
+        />
         <Stack.Screen name="ClubDetail" component={ClubDetailScreen} options={({ route }) => ({ title: route.params.name })} />
+        <Stack.Screen name="JoinClub" component={JoinClubScreen} options={{ title: 'Tham gia CLB' }} />
+        <Stack.Screen name="CreateClub" component={CreateClubScreen} options={{ title: 'Tạo câu lạc bộ' }} />
       </Stack.Navigator>
     </PassProvider>
   );

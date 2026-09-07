@@ -17,4 +17,6 @@ export type RootStackParamList = {
   DayPassPayment: { kind: DayPassKind };
   DayPassConfirm: { kind: DayPassKind };
   ClubDetail: { id: string; name: string };
+  JoinClub: undefined;
+  CreateClub: undefined;
 };

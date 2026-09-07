@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,21 +18,23 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ClubScreen() {
   const nav = useNavigation<Nav>();
-  const { active } = usePasses();
+  const { active, joinedClub, joinClub } = usePasses();
+  // Chuyển sang tab Tìm kiếm để tìm câu lạc bộ.
+  const goSearch = () => nav.navigate('MainTabs', { screen: 'Search' });
   // Tài khoản mời truy cập: chưa có câu lạc bộ → hiện 2 lựa chọn Tạo / Tham gia.
-  const [hasClubs, setHasClubs] = useState(false);
 
-  if (!hasClubs) {
+  if (!joinedClub) {
     return (
       <Screen>
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Câu lạc bộ</Text>
+            <IconButton name="search" onPress={goSearch} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
           </View>
           <View style={styles.gutter}>
             <Text style={styles.lead}>Bạn chưa tham gia câu lạc bộ nào. Bắt đầu bằng cách:</Text>
 
-            <Pressable style={styles.optCard} onPress={() => setHasClubs(true)} accessibilityRole="button" accessibilityLabel="Tạo Club">
+            <Pressable style={styles.optCard} onPress={() => nav.navigate('CreateClub')} accessibilityRole="button" accessibilityLabel="Tạo Club">
               <View style={[styles.optIcon, { backgroundColor: color.ink }]}>
                 <Ionicons name="add" size={24} color={color.volt} />
               </View>
@@ -44,7 +45,7 @@ export default function ClubScreen() {
               <Ionicons name="chevron-forward" size={20} color={color.navIdle} />
             </Pressable>
 
-            <Pressable style={styles.optCard} onPress={() => setHasClubs(true)} accessibilityRole="button" accessibilityLabel="Tham gia Club">
+            <Pressable style={styles.optCard} onPress={() => nav.navigate('JoinClub')} accessibilityRole="button" accessibilityLabel="Tham gia Club">
               <View style={[styles.optIcon, { backgroundColor: color.volt }]}>
                 <Ionicons name="people" size={22} color={color.ink} />
               </View>
@@ -56,7 +57,7 @@ export default function ClubScreen() {
             </Pressable>
 
             <Text style={styles.section}>Khám phá CLB</Text>
-            {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => setHasClubs(true)} />)}
+            {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
           </View>
         </ScrollView>
       </Screen>
@@ -68,7 +69,10 @@ export default function ClubScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Câu lạc bộ</Text>
-          <IconButton name="add" onPress={() => {}} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
+          <View style={styles.headerActions}>
+            <IconButton name="search" onPress={goSearch} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
+            <IconButton name="add" onPress={() => nav.navigate('JoinClub')} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
+          </View>
         </View>
 
         <Text style={[styles.section, styles.gutter]}>CLB của tôi</Text>
@@ -100,7 +104,7 @@ export default function ClubScreen() {
 
         <View style={styles.gutter}>
           <Text style={styles.section}>Khám phá CLB</Text>
-          {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => {}} />)}
+          {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
         </View>
       </ScrollView>
     </Screen>
@@ -110,6 +114,7 @@ export default function ClubScreen() {
 const styles = StyleSheet.create({
   gutter: { paddingHorizontal: space.xl },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, marginTop: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { ...font.h1, color: color.ink },
   section: { ...font.section, color: color.ink, marginTop: 26, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

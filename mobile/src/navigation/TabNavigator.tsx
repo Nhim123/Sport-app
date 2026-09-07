@@ -1,16 +1,14 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
+import SearchScreen from '../screens/SearchScreen';
 import ClubScreen from '../screens/ClubScreen';
 import BookingsScreen from '../screens/BookingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { Placeholder } from '../screens/PlaceholderScreen';
 import { TabParamList } from './types';
 import { color } from '../theme/tokens';
 
 const Tab = createBottomTabNavigator<TabParamList>();
-
-const SearchScreen = () => <Placeholder title="Tìm kiếm" />;
 
 const ICON: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
   Home: 'home', Search: 'search', Club: 'people', Bookings: 'calendar', Profile: 'person',

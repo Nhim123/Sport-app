@@ -1,16 +1,19 @@
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { color, font, space } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
-import { getVenue, slots, days } from '../data/mock';
+import { getVenue, slots, days, myClubs } from '../data/mock';
 import { useBookingSelection } from '../hooks/useBookingSelection';
+import { SegmentedTabs } from '../components/chips/SegmentedTabs';
 import { DayPicker } from '../components/booking/DayPicker';
 import { SlotGrid } from '../components/booking/SlotGrid';
 import { CourtPicker } from '../components/booking/CourtPicker';
 import { BottomBar } from '../components/booking/BottomBar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Booking'>;
+type BookFor = 'personal' | 'club';
 
 export default function BookingScreen() {
   const nav = useNavigation<Nav>();
@@ -18,9 +21,28 @@ export default function BookingScreen() {
   const venue = getVenue(params.venueId);
   const b = useBookingSelection(slots, days, venue?.pricePerHour ?? 80000);
 
+  const [bookFor, setBookFor] = useState<BookFor>('personal');
+  // Đặt thay cho CLB: ưu tiên CLB cùng bộ môn với sân, nếu không có thì lấy CLB đầu tiên của tôi.
+  const myClub = useMemo(
+    () => myClubs.find(c => venue != null && c.sports.includes(venue.sport)) ?? myClubs[0],
+    [venue?.sport],
+  );
+  const forLabel = bookFor === 'club' ? (myClub?.name ?? 'CLB') : 'Cá nhân';
+  const summary = b.summary ? `${b.summary} · ${forLabel}` : undefined;
+
   return (
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: space.xl, paddingBottom: 24 }}>
+        <Text style={styles.section}>Đặt sân cho</Text>
+        <SegmentedTabs
+          value={bookFor}
+          options={[{ key: 'personal', label: 'Cá nhân' }, { key: 'club', label: 'Câu lạc bộ' }]}
+          onChange={setBookFor}
+        />
+        {bookFor === 'club' && (
+          <Text style={styles.forNote}>Đặt thay cho CLB: {myClub?.name ?? '—'}</Text>
+        )}
+
         <Text style={styles.section}>Chọn ngày</Text>
         <DayPicker days={days} value={b.dayKey} onChange={b.setDayKey} />
 
@@ -32,7 +54,7 @@ export default function BookingScreen() {
       </ScrollView>
 
       <BottomBar
-        summary={b.summary}
+        summary={summary}
         priceLabel={b.priceLabel}
         ctaLabel="Thanh toán qua QR"
         ctaDisabled={!b.canPay}
@@ -45,4 +67,5 @@ export default function BookingScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.bg },
   section: { ...font.section, color: color.ink, marginTop: 20, marginBottom: 12 },
+  forNote: { ...font.sub, color: color.textMuted, marginTop: 10, fontWeight: '600' },
 });
