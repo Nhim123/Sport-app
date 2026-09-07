@@ -44,7 +44,7 @@ export default function ClubScreen() {
               <Ionicons name="chevron-forward" size={20} color={color.navIdle} />
             </Pressable>
 
-            <Pressable style={styles.optCard} onPress={() => setHasClubs(true)} accessibilityRole="button" accessibilityLabel="Tham gia Club">
+            <Pressable style={styles.optCard} onPress={() => nav.navigate('ClubJoin')} accessibilityRole="button" accessibilityLabel="Tham gia Club">
               <View style={[styles.optIcon, { backgroundColor: color.volt }]}>
                 <Ionicons name="people" size={22} color={color.ink} />
               </View>
@@ -68,7 +68,10 @@ export default function ClubScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Câu lạc bộ</Text>
-          <IconButton name="add" onPress={() => {}} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <IconButton name="search" onPress={() => nav.navigate('ClubJoin')} bg={color.surface} iconColor={color.ink} size={42} iconSize={22} style={{ borderWidth: 1, borderColor: color.line }} />
+            <IconButton name="add" onPress={() => {}} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
+          </View>
         </View>
 
         <Text style={[styles.section, styles.gutter]}>CLB của tôi</Text>

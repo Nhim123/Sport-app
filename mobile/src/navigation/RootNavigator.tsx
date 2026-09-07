@@ -7,6 +7,7 @@ import GymScreen from '../screens/GymScreen';
 import DayPassPaymentScreen from '../screens/DayPassPaymentScreen';
 import DayPassConfirmScreen from '../screens/DayPassConfirmScreen';
 import ClubDetailScreen from '../screens/ClubDetailScreen';
+import ClubJoinScreen from '../screens/ClubJoinScreen';
 import { PassProvider } from '../state/PassContext';
 import { color } from '../theme/tokens';
 
@@ -40,6 +41,7 @@ export function RootNavigator() {
         <Stack.Screen name="DayPassPayment" component={DayPassPaymentScreen} options={{ title: 'Thanh toán' }} />
         <Stack.Screen name="DayPassConfirm" component={DayPassConfirmScreen} options={{ title: 'Hoàn tất', headerBackVisible: false, gestureEnabled: false }} />
         <Stack.Screen name="ClubDetail" component={ClubDetailScreen} options={({ route }) => ({ title: route.params.name })} />
+        <Stack.Screen name="ClubJoin" component={ClubJoinScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </PassProvider>
   );
