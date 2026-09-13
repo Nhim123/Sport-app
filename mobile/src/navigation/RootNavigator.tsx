@@ -9,14 +9,23 @@ import DayPassConfirmScreen from '../screens/DayPassConfirmScreen';
 import ClubDetailScreen from '../screens/ClubDetailScreen';
 import JoinClubScreen from '../screens/JoinClubScreen';
 import CreateClubScreen from '../screens/CreateClubScreen';
+import CreatePollScreen from '../screens/CreatePollScreen';
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 import { PassProvider } from '../state/PassContext';
+import { PollProvider } from '../state/PollContext';
+import { useAuth } from '../state/AuthContext';
 import { color } from '../theme/tokens';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  const { user, loading } = useAuth();
+  if (loading) return null;   // đang đọc phiên đăng nhập đã lưu
+
   return (
     <PassProvider>
+     <PollProvider>
       <Stack.Navigator
         screenOptions={{
           headerTintColor: color.ink,
@@ -29,6 +38,13 @@ export function RootNavigator() {
           ...TransitionPresets.SlideFromRightIOS,
         }}
       >
+        {!user ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Tạo tài khoản' }} />
+          </>
+        ) : (
+          <>
         <Stack.Screen name="MainTabs" component={TabNavigator} options={{ headerShown: false }} />
         <Stack.Screen
           name="VenueDetail"
@@ -53,7 +69,11 @@ export function RootNavigator() {
         <Stack.Screen name="ClubDetail" component={ClubDetailScreen} options={({ route }) => ({ title: route.params.name })} />
         <Stack.Screen name="JoinClub" component={JoinClubScreen} options={{ title: 'Tham gia CLB' }} />
         <Stack.Screen name="CreateClub" component={CreateClubScreen} options={{ title: 'Tạo câu lạc bộ' }} />
+        <Stack.Screen name="CreatePoll" component={CreatePollScreen} options={{ title: 'Tạo bình chọn' }} />
+          </>
+        )}
       </Stack.Navigator>
+     </PollProvider>
     </PassProvider>
   );
 }

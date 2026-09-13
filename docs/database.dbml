@@ -1,0 +1,338 @@
+// Sport-app — Database schema (DBML)
+// Dán vào https://dbdiagram.io để xem ERD.
+// Quy ước: khoá chính uuid; timestamps = timestamptz; trường thuần UI (gradient,
+// initials, distanceKm, heroTag) KHÔNG lưu DB — client tự suy ra.
+
+//============================ ENUMS ============================
+Enum sport { pickle gym football }
+Enum auth_provider { password google }
+Enum club_privacy { open approval }          // công khai | cần duyệt
+Enum club_role { owner admin member }        // chủ hội | quản lý | thành viên
+Enum club_member_status { active pending }   // đã duyệt | chờ duyệt (privacy=approval)
+Enum booking_status { upcoming past }
+Enum book_for { personal club }              // đặt sân cho cá nhân | CLB
+Enum attend_status { done planned }          // đã tham dự | dự kiến
+Enum day_pass_kind { personal club }
+Enum day_pass_status { booking active }
+Enum poll_status { open closed }
+Enum payment_purpose { court daypass club }
+Enum payment_status { pending paid failed }
+Enum match_level { intermediate all advanced }
+Enum fund_tx_kind { in out }
+
+//======================= USERS & AUTH ==========================
+Table users {
+  id uuid [pk]
+  name varchar [not null]
+  email varchar [unique, not null]
+  avatar_url varchar
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+// 1 user có nhiều cách đăng nhập (mật khẩu và/hoặc Google).
+Table auth_identities {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  provider auth_provider [not null]
+  provider_uid varchar          // Google `sub`; null với password
+  password_hash varchar         // chỉ với provider=password
+  created_at timestamptz [not null, default: `now()`]
+  indexes {
+    (provider, provider_uid) [unique]
+    (user_id, provider) [unique]
+  }
+}
+
+//===================== VENUES & COURTS =========================
+Table venues {
+  id uuid [pk]
+  name varchar [not null]
+  sport sport [not null]
+  district varchar
+  address varchar
+  rating numeric
+  reviews_count int [default: 0]
+  price_label varchar           // hiển thị: "80.000₫/giờ"
+  price_per_hour int            // VND, để tính tiền
+  open_time varchar
+  about text
+  hero_tag varchar
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table venue_amenities {
+  id uuid [pk]
+  venue_id uuid [not null, ref: > venues.id]
+  amenity varchar [not null]
+}
+
+Table courts {
+  id uuid [pk]
+  venue_id uuid [not null, ref: > venues.id]
+  label varchar [not null]      // "Sân 3"
+  sport sport [not null]
+}
+
+// Chủ sân cấu hình khung mở theo ngày → sinh ra các slot.
+Table court_schedules {
+  id uuid [pk]
+  venue_id uuid [not null, ref: > venues.id]
+  date date [not null]
+  open_time time [not null]
+  close_time time [not null]
+  session_minutes int [not null, default: 60]
+  indexes { (venue_id, date) [unique] }
+}
+
+Table time_slots {
+  id uuid [pk]
+  schedule_id uuid [not null, ref: > court_schedules.id]
+  court_id uuid [ref: > courts.id]
+  start_time time [not null]
+  booked boolean [not null, default: false]
+}
+
+//======================== BOOKINGS =============================
+Table bookings {
+  id uuid [pk]
+  code varchar [unique, not null]        // "PB7X29"
+  user_id uuid [not null, ref: > users.id]
+  venue_id uuid [not null, ref: > venues.id]
+  court_id uuid [ref: > courts.id]
+  sport sport [not null]
+  date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  price int [not null]                   // VND
+  status booking_status [not null, default: 'upcoming']
+  book_for book_for [not null, default: 'personal']
+  club_id uuid [ref: > clubs.id]         // khi đặt thay cho CLB
+  created_at timestamptz [not null, default: `now()`]
+}
+
+//===================== GYM: PASS & MEMBERSHIP ==================
+Table day_passes {
+  id uuid [pk]
+  pass_code varchar [unique, not null]   // "DP-2026-0831"
+  user_id uuid [not null, ref: > users.id]
+  venue_id uuid [not null, ref: > venues.id]
+  price int [not null]
+  valid_date date [not null]
+  kind day_pass_kind [not null, default: 'personal']
+  club_id uuid [ref: > clubs.id]
+  entries_left int [not null, default: 1]
+  status day_pass_status [not null, default: 'booking']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table memberships {
+  id uuid [pk]
+  member_code varchar [unique, not null] // "MK-2026-0714"
+  user_id uuid [not null, ref: > users.id]
+  venue_id uuid [not null, ref: > venues.id]
+  plan varchar [not null]                // "GÓI THÁNG"
+  package_type varchar                   // "Không giới hạn · 1 tháng"
+  active boolean [not null, default: true]
+  start_date date
+  expiry date
+  checkins_this_month int [default: 0]
+}
+
+Table gym_classes {
+  id uuid [pk]
+  venue_id uuid [not null, ref: > venues.id]
+  name varchar [not null]                // "Yoga Flow"
+  coach varchar
+  time varchar
+  duration_min int
+  slots_left int
+  date date
+}
+
+Table class_enrollments {
+  id uuid [pk]
+  class_id uuid [not null, ref: > gym_classes.id]
+  user_id uuid [not null, ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  indexes { (class_id, user_id) [unique] }
+}
+
+//========================== CLUBS ==============================
+Table clubs {
+  id uuid [pk]
+  name varchar [not null]
+  owner_id uuid [not null, ref: > users.id]
+  privacy club_privacy [not null, default: 'open']
+  about text
+  district varchar
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// CLB triển khai nhiều bộ môn.
+Table club_sports {
+  id uuid [pk]
+  club_id uuid [not null, ref: > clubs.id]
+  sport sport [not null]
+  indexes { (club_id, sport) [unique] }
+}
+
+// role quyết định quyền quản trị (tạo bình chọn, quản quỹ, ...).
+Table club_memberships {
+  id uuid [pk]
+  club_id uuid [not null, ref: > clubs.id]
+  user_id uuid [not null, ref: > users.id]
+  role club_role [not null, default: 'member']
+  status club_member_status [not null, default: 'active']
+  joined_at timestamptz [not null, default: `now()`]
+  indexes { (club_id, user_id) [unique] }
+}
+
+// Tham gia bằng mã / QR (QR mã hoá `code`).
+Table club_join_codes {
+  id uuid [pk]
+  club_id uuid [not null, ref: > clubs.id]
+  code varchar [unique, not null]
+  active boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// Quỹ CLB: số dư = SUM(amount theo kind). Không lưu balance riêng.
+Table club_fund_txs {
+  id uuid [pk]
+  club_id uuid [not null, ref: > clubs.id]
+  label varchar [not null]
+  amount int [not null]                  // VND
+  kind fund_tx_kind [not null]
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table club_programs {
+  id uuid [pk]
+  club_id uuid [not null, ref: > clubs.id]
+  title varchar [not null]
+  date date
+  time varchar
+  place varchar
+  capacity int
+  fee varchar
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table club_program_participants {
+  id uuid [pk]
+  program_id uuid [not null, ref: > club_programs.id]
+  user_id uuid [not null, ref: > users.id]
+  joined_at timestamptz [not null, default: `now()`]
+  indexes { (program_id, user_id) [unique] }
+}
+
+// Lịch sinh hoạt / lịch tuần. Poll gắn vào 1 event.
+Table club_events {
+  id uuid [pk]
+  club_id uuid [ref: > clubs.id]         // null nếu là lịch cá nhân
+  user_id uuid [not null, ref: > users.id]
+  date date [not null]
+  start_time time
+  end_time time
+  title varchar [not null]
+  place varchar
+  sport sport [not null]
+  status attend_status [not null, default: 'planned']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+//========================== POLLS ==============================
+// Tạo poll: chỉ role owner/admin (kiểm ở tầng API).
+Table polls {
+  id uuid [pk]
+  club_id uuid [not null, ref: > clubs.id]
+  created_by uuid [not null, ref: > users.id]
+  title varchar [not null]
+  note varchar
+  event_id uuid [ref: > club_events.id]  // gắn lịch sinh hoạt
+  closes_at timestamptz
+  allow_multiple boolean [not null, default: false]
+  allow_add_option boolean [not null, default: false]
+  anonymous boolean [not null, default: false]
+  hide_results boolean [not null, default: false]
+  pinned boolean [not null, default: false]
+  status poll_status [not null, default: 'open']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table poll_options {
+  id uuid [pk]
+  poll_id uuid [not null, ref: > polls.id]
+  label varchar [not null]
+  created_by uuid [ref: > users.id]      // thành viên thêm (nếu allow_add_option)
+  position int [not null, default: 0]
+}
+
+Table poll_votes {
+  id uuid [pk]
+  poll_id uuid [not null, ref: > polls.id]
+  option_id uuid [not null, ref: > poll_options.id]
+  user_id uuid [not null, ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  // 1 người / 1 phương án tối đa 1 phiếu; chọn-một vs chọn-nhiều do allow_multiple.
+  indexes { (poll_id, option_id, user_id) [unique] }
+}
+
+//==================== MATCHES & PROMOS =========================
+Table matches {
+  id uuid [pk]
+  host_id uuid [not null, ref: > users.id]
+  venue_id uuid [ref: > venues.id]
+  venue_label varchar                    // "Pickleball Center Q7 · Hôm nay 18:00"
+  title varchar [not null]
+  level match_level [not null]
+  capacity int [not null]
+  note varchar
+  start_time timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table match_participants {
+  id uuid [pk]
+  match_id uuid [not null, ref: > matches.id]
+  user_id uuid [not null, ref: > users.id]
+  joined_at timestamptz [not null, default: `now()`]
+  indexes { (match_id, user_id) [unique] }
+}
+
+Table promos {
+  id uuid [pk]
+  sport_tab varchar [not null]           // 'all' | sport
+  badge varchar
+  title varchar [not null]
+  subtitle varchar
+  cta_label varchar
+  emoji varchar
+  active boolean [not null, default: true]
+}
+
+//========================= PAYMENTS ============================
+// Màn thanh toán chung: mọi tính năng dồn về 1 đơn.
+Table payments {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  purpose payment_purpose [not null]
+  ref_type varchar                       // 'booking' | 'day_pass' | ...
+  ref_id uuid                            // id bản ghi liên quan
+  title varchar [not null]
+  brand varchar
+  item_label varchar
+  item_value varchar
+  address varchar
+  date varchar
+  amount int [not null]
+  code varchar
+  fixed_time varchar
+  pass_kind day_pass_kind
+  status payment_status [not null, default: 'pending']
+  method varchar [default: 'qr']
+  created_at timestamptz [not null, default: `now()`]
+  paid_at timestamptz
+}

@@ -5,10 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "scheme": "sportapp",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sportapp.mobile"
     },
     "android": {
+      "package": "com.sportapp.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#0f172a"
       }
@@ -25,7 +28,8 @@
           "backgroundColor": "#0f172a",
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

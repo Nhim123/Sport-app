@@ -3,8 +3,10 @@ import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/Screen';
 import { SegmentedTabs } from '../components/chips/SegmentedTabs';
+import { PollCard } from '../components/cards/PollCard';
+import { usePolls } from '../state/PollContext';
 import { days, weekEvents, todayKey } from '../data/mock';
-import { AttendStatus, Sport, WeekEvent } from '../types';
+import { AttendStatus, Sport, WeekEvent, ClubPoll } from '../types';
 import { color, font, radius, space, shadow } from '../theme/tokens';
 
 type Filter = 'all' | AttendStatus;
@@ -20,6 +22,7 @@ export default function BookingsScreen() {
   const [seg, setSeg] = useState<Filter>('all');
   // null = xem cả tuần; ngược lại = xem đúng một ngày. Mặc định mở ở hôm nay.
   const [selectedDay, setSelectedDay] = useState<string | null>(todayKey);
+  const { pollForDay, vote, addOption } = usePolls();
 
   const doneCount = useMemo(() => weekEvents.filter(e => e.status === 'done').length, []);
   const plannedCount = useMemo(() => weekEvents.filter(e => e.status === 'planned').length, []);
@@ -102,14 +105,17 @@ export default function BookingsScreen() {
         </View>
 
         {selectedDay ? (
-          groups[0]?.items.length ? (
-            groups[0].items.map(e => <EventRow key={e.id} event={e} />)
-          ) : (
-            <View style={styles.emptyDay}>
-              <Ionicons name="calendar-clear-outline" size={24} color={color.textMuted} />
-              <Text style={styles.emptyTxt}>Ngày này chưa có lịch đăng ký.</Text>
-            </View>
-          )
+          <>
+            {groups[0]?.items.length ? (
+              groups[0].items.map(e => <EventRow key={e.id} event={e} />)
+            ) : (
+              <View style={styles.emptyDay}>
+                <Ionicons name="calendar-clear-outline" size={24} color={color.textMuted} />
+                <Text style={styles.emptyTxt}>Ngày này chưa có lịch đăng ký.</Text>
+              </View>
+            )}
+            <DayPoll dayKey={selectedDay} onVote={vote} onAddOption={addOption} pollForDay={pollForDay} />
+          </>
         ) : groups.length === 0 ? (
           <Text style={styles.emptyTxt}>Không có lịch nào trong mục này.</Text>
         ) : (
@@ -121,6 +127,7 @@ export default function BookingsScreen() {
                 </Text>
               </Pressable>
               {g.items.map(e => <EventRow key={e.id} event={e} />)}
+              <DayPoll dayKey={g.day.key} onVote={vote} onAddOption={addOption} pollForDay={pollForDay} />
             </View>
           ))
         )}
@@ -158,8 +165,30 @@ function EventRow({ event }: { event: WeekEvent }) {
   );
 }
 
+// Bình chọn của CLB gắn với ngày — hiện dưới danh sách buổi trong ngày đó.
+function DayPoll({ dayKey, onVote, onAddOption, pollForDay }: {
+  dayKey: string;
+  onVote: (pollId: string, optionId: string) => void;
+  onAddOption: (pollId: string, label: string) => void;
+  pollForDay: (d?: string) => ClubPoll | undefined;
+}) {
+  const poll = pollForDay(dayKey);
+  if (!poll) return null;
+  return (
+    <View style={{ marginTop: 6 }}>
+      <View style={styles.pollHeading}>
+        <Ionicons name="bar-chart-outline" size={16} color={color.ink} />
+        <Text style={styles.pollHeadingTxt}>Bình chọn của CLB</Text>
+      </View>
+      <PollCard poll={poll} onVote={opt => onVote(poll.id, opt)} onAddOption={label => onAddOption(poll.id, label)} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   title: { ...font.h1, color: color.ink, marginTop: 8 },
+  pollHeading: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 14, marginBottom: 10 },
+  pollHeadingTxt: { ...font.section, color: color.ink },
   sub: { ...font.sub, color: color.textMuted, marginTop: 4, fontWeight: '600' },
 
   strip: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 },

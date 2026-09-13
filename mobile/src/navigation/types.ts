@@ -10,6 +10,9 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
+  // Xác thực (khi chưa đăng nhập)
+  Login: undefined;
+  Register: undefined;
   MainTabs: NavigatorScreenParams<TabParamList>;
   VenueDetail: { id: string; name: string };
   Booking: { venueId: string; name: string };
@@ -19,4 +22,5 @@ export type RootStackParamList = {
   ClubDetail: { id: string; name: string };
   JoinClub: undefined;
   CreateClub: undefined;
+  CreatePoll: { club: string };
 };

@@ -1,0 +1,647 @@
+openapi: 3.1.0
+info:
+  title: Sport-app API
+  version: 1.0.0
+  description: >
+    REST API cho Sport-app (đặt sân, vé ngày & hội viên gym, câu lạc bộ, lịch sinh
+    hoạt, bình chọn, tìm bạn chơi, thanh toán). Xác thực Bearer JWT. Quyền quản trị
+    CLB dựa trên vai trò trong `club_memberships` — đặc biệt: TẠO BÌNH CHỌN chỉ dành
+    cho owner/admin (member nhận 403).
+servers:
+  - url: https://api.sportapp.example/api/v1
+    description: Production
+  - url: http://localhost:8080/api/v1
+    description: Local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Venues
+  - name: Bookings
+  - name: Gym
+  - name: Schedule
+  - name: Clubs
+  - name: Club Admin
+  - name: Polls
+  - name: Matches
+  - name: Promos
+  - name: Payments
+
+paths:
+  #====================== AUTH ======================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Đăng ký tài khoản (email + mật khẩu)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+      responses:
+        '201': { description: "Đã tạo — trả về phiên", content: { application/json: { schema: { $ref: '#/components/schemas/AuthSession' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập email + mật khẩu
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSession' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/google:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập qua Google (đổi id_token/access_token lấy phiên app)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken: { type: string, description: Google ID token (từ expo-auth-session) }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSession' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Đăng xuất (thu hồi refresh token)
+      responses: { '204': { description: Đã đăng xuất } }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Thông tin user hiện tại
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  #====================== USERS ======================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Hồ sơ của tôi
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } } }
+    patch:
+      tags: [Users]
+      summary: Cập nhật hồ sơ
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { name: { type: string }, avatarUrl: { type: string } } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } } }
+  /users/me/stats:
+    get:
+      tags: [Users]
+      summary: Số liệu hồ sơ (số buổi, CLB, ...)
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ProfileStat' } } } } } }
+
+  #====================== VENUES ======================
+  /venues:
+    get:
+      tags: [Venues]
+      summary: Danh sách / tìm kiếm sân bãi
+      parameters:
+        - { name: sport, in: query, schema: { $ref: '#/components/schemas/Sport' } }
+        - { name: q, in: query, schema: { type: string }, description: Từ khoá tên/khu vực }
+        - { name: district, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Venue' } } } } } }
+  /venues/{id}:
+    get:
+      tags: [Venues]
+      summary: Chi tiết sân
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Venue' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /venues/{id}/schedule:
+    get:
+      tags: [Venues]
+      summary: Lịch sân theo ngày (khung giờ đặt được)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CourtSchedule' } } } } }
+  /venues/{id}/classes:
+    get:
+      tags: [Venues]
+      summary: Lớp gym của cơ sở
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/GymClass' } } } } } }
+
+  #====================== BOOKINGS ======================
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: Lịch đặt của tôi
+      parameters: [ { name: status, in: query, schema: { $ref: '#/components/schemas/BookingStatus' } } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Booking' } } } } } }
+    post:
+      tags: [Bookings]
+      summary: Đặt sân (cho cá nhân hoặc CLB)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [venueId, date, startTime, bookFor]
+              properties:
+                venueId: { type: string }
+                courtId: { type: string }
+                date: { type: string, format: date }
+                startTime: { type: string, example: "18:00" }
+                bookFor: { $ref: '#/components/schemas/BookFor' }
+                clubId: { type: string, description: Bắt buộc khi bookFor=club }
+      responses:
+        '201': { description: Đã tạo (kèm payment pending), content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '409': { description: Khung giờ đã được đặt }
+  /bookings/{id}:
+    get:
+      tags: [Bookings]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } } }
+    delete:
+      tags: [Bookings]
+      summary: Huỷ đặt sân
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '204': { description: Đã huỷ } }
+
+  #====================== GYM ======================
+  /day-passes:
+    post:
+      tags: [Gym]
+      summary: Mua vé ngày (cá nhân/CLB)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [venueId, validDate, kind]
+              properties:
+                venueId: { type: string }
+                validDate: { type: string, format: date }
+                kind: { $ref: '#/components/schemas/DayPassKind' }
+                clubId: { type: string }
+      responses: { '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DayPass' } } } } }
+  /day-passes/{id}:
+    get:
+      tags: [Gym]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DayPass' } } } } }
+  /memberships/me:
+    get:
+      tags: [Gym]
+      summary: Thẻ hội viên của tôi
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Membership' } } } } } }
+
+  #====================== SCHEDULE ======================
+  /me/schedule:
+    get:
+      tags: [Schedule]
+      summary: Lịch tuần của tôi (buổi đã tham dự / dự kiến)
+      parameters: [ { name: week, in: query, schema: { type: string, description: "ISO week, vd 2026-W37" } } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClubEvent' } } } } } }
+
+  #====================== CLUBS ======================
+  /clubs:
+    get:
+      tags: [Clubs]
+      summary: Khám phá / tìm CLB
+      parameters:
+        - { name: sport, in: query, schema: { $ref: '#/components/schemas/Sport' } }
+        - { name: q, in: query, schema: { type: string } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Club' } } } } } }
+    post:
+      tags: [Clubs]
+      summary: Tạo CLB (người tạo thành owner)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, sports]
+              properties:
+                name: { type: string }
+                sports: { type: array, items: { $ref: '#/components/schemas/Sport' }, minItems: 1 }
+                district: { type: string }
+                about: { type: string }
+                privacy: { $ref: '#/components/schemas/ClubPrivacy' }
+      responses: { '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Club' } } } } }
+  /clubs/{id}:
+    get:
+      tags: [Clubs]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Club' } } } } }
+  /me/clubs:
+    get:
+      tags: [Clubs]
+      summary: CLB của tôi
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Club' } } } } } }
+  /clubs/join:
+    post:
+      tags: [Clubs]
+      summary: Tham gia CLB bằng mã / QR (QR mã hoá code)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string } } } } }
+      responses:
+        '200': { description: Đã tham gia (hoặc chờ duyệt nếu privacy=approval), content: { application/json: { schema: { $ref: '#/components/schemas/Club' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  #====================== CLUB ADMIN ======================
+  /clubs/{id}/members:
+    get:
+      tags: [Club Admin]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClubMember' } } } } } }
+  /clubs/{id}/members/{userId}:
+    patch:
+      tags: [Club Admin]
+      summary: Đổi vai trò / duyệt thành viên (owner/admin)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { role: { $ref: '#/components/schemas/ClubRole' }, status: { type: string, enum: [active, pending] } } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ClubMember' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /clubs/{id}/fund/transactions:
+    get:
+      tags: [Club Admin]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ClubFund' } } } } }
+    post:
+      tags: [Club Admin]
+      summary: Thêm khoản thu/chi (owner/admin)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [label, amount, kind], properties: { label: { type: string }, amount: { type: integer }, kind: { type: string, enum: [in, out] } } } } }
+      responses:
+        '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ClubFundTx' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /clubs/{id}/programs:
+    get:
+      tags: [Club Admin]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClubProgram' } } } } } }
+    post:
+      tags: [Club Admin]
+      summary: Tạo chương trình (owner/admin)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [title], properties: { title: { type: string }, date: { type: string }, time: { type: string }, place: { type: string }, capacity: { type: integer }, fee: { type: string } } } } }
+      responses:
+        '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ClubProgram' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /programs/{id}/join:
+    post:
+      tags: [Club Admin]
+      summary: Tham gia chương trình (mọi thành viên)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '204': { description: Đã tham gia } }
+
+  #====================== POLLS ======================
+  /clubs/{id}/polls:
+    get:
+      tags: [Polls]
+      summary: Danh sách bình chọn của CLB
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Poll' } } } } } }
+    post:
+      tags: [Polls]
+      summary: Tạo bình chọn — CHỈ owner/admin
+      description: Member gọi endpoint này sẽ nhận 403 (khớp gating UI ở ClubDetailScreen).
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, options]
+              properties:
+                title: { type: string }
+                note: { type: string }
+                eventId: { type: string, description: gắn buổi trong lịch sinh hoạt }
+                closesAt: { type: string, format: date-time }
+                options: { type: array, items: { type: string }, minItems: 2 }
+                allowMultiple: { type: boolean }
+                allowAddOption: { type: boolean }
+                anonymous: { type: boolean }
+                hideResults: { type: boolean }
+                pinned: { type: boolean }
+      responses:
+        '201': { description: Đã tạo, content: { application/json: { schema: { $ref: '#/components/schemas/Poll' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /polls/{id}:
+    get:
+      tags: [Polls]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Poll' } } } } }
+    patch:
+      tags: [Polls]
+      summary: Đóng / ghim bình chọn (owner/admin)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { status: { $ref: '#/components/schemas/PollStatus' }, pinned: { type: boolean } } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Poll' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /polls/{id}/options:
+    post:
+      tags: [Polls]
+      summary: Thêm phương án (member chỉ khi allowAddOption)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [label], properties: { label: { type: string } } } } }
+      responses:
+        '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PollOption' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /polls/{id}/votes:
+    post:
+      tags: [Polls]
+      summary: Bỏ phiếu (một hoặc nhiều phương án theo allowMultiple)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [optionIds], properties: { optionIds: { type: array, items: { type: string } } } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Poll' } } } } }
+    delete:
+      tags: [Polls]
+      summary: Rút phiếu (bỏ chọn)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: optionId, in: query, schema: { type: string }, description: rỗng = rút toàn bộ phiếu của mình }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Poll' } } } } }
+
+  #====================== MATCHES ======================
+  /matches:
+    get:
+      tags: [Matches]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Match' } } } } } }
+    post:
+      tags: [Matches]
+      summary: Tạo kèo tìm bạn chơi
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [title, level, capacity], properties: { title: { type: string }, venueId: { type: string }, level: { $ref: '#/components/schemas/MatchLevel' }, capacity: { type: integer }, note: { type: string }, startTime: { type: string, format: date-time } } } } }
+      responses: { '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Match' } } } } }
+  /matches/{id}/join:
+    post:
+      tags: [Matches]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '204': { description: Đã tham gia } }
+
+  #====================== PROMOS ======================
+  /promos:
+    get:
+      tags: [Promos]
+      parameters: [ { name: tab, in: query, schema: { type: string, description: "'all' | sport" } } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Promo' } } } } } }
+
+  #====================== PAYMENTS ======================
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Tạo đơn thanh toán chung
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [purpose, refId], properties: { purpose: { $ref: '#/components/schemas/PaymentPurpose' }, refType: { type: string }, refId: { type: string } } } } }
+      responses: { '201': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Payment' } } } } }
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Payment' } } } } }
+  /payments/{id}/confirm:
+    post:
+      tags: [Payments]
+      summary: Xác nhận đã thanh toán (QR)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Payment' } } } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string } }
+    Page: { name: page, in: query, schema: { type: integer, default: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, default: 20 } }
+  responses:
+    Unauthorized: { description: Chưa đăng nhập, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: Không đủ quyền (vd member tạo bình chọn), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Không tìm thấy, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: Xung đột (vd email đã tồn tại), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: forbidden }
+            message: { type: string }
+    Sport: { type: string, enum: [pickle, gym, football] }
+    BookingStatus: { type: string, enum: [upcoming, past] }
+    BookFor: { type: string, enum: [personal, club] }
+    AttendStatus: { type: string, enum: [done, planned] }
+    DayPassKind: { type: string, enum: [personal, club] }
+    ClubPrivacy: { type: string, enum: [open, approval] }
+    ClubRole: { type: string, enum: [owner, admin, member] }
+    PollStatus: { type: string, enum: [open, closed] }
+    MatchLevel: { type: string, enum: [intermediate, all, advanced] }
+    PaymentPurpose: { type: string, enum: [court, daypass, club] }
+    AuthSession:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        avatarUrl: { type: string }
+        provider: { type: string, enum: [password, google] }
+    ProfileStat:
+      type: object
+      properties: { value: { type: string }, label: { type: string } }
+    Venue:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        sport: { $ref: '#/components/schemas/Sport' }
+        district: { type: string }
+        address: { type: string }
+        rating: { type: number }
+        reviewsCount: { type: integer }
+        priceLabel: { type: string }
+        pricePerHour: { type: integer }
+        openTime: { type: string }
+        courts: { type: integer }
+        amenities: { type: array, items: { type: string } }
+        about: { type: string }
+    Slot:
+      type: object
+      properties: { id: { type: string }, time: { type: string }, state: { type: string, enum: [free, booked] } }
+    CourtSchedule:
+      type: object
+      properties:
+        date: { type: string }
+        openTime: { type: string }
+        closeTime: { type: string }
+        sessionMinutes: { type: integer }
+        slots: { type: array, items: { $ref: '#/components/schemas/Slot' } }
+    GymClass:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        coach: { type: string }
+        time: { type: string }
+        durationMin: { type: integer }
+        slotsLeft: { type: integer }
+    Booking:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string }
+        sport: { $ref: '#/components/schemas/Sport' }
+        venueName: { type: string }
+        date: { type: string }
+        time: { type: string }
+        priceLabel: { type: string }
+        status: { $ref: '#/components/schemas/BookingStatus' }
+        bookFor: { $ref: '#/components/schemas/BookFor' }
+        clubId: { type: string }
+    DayPass:
+      type: object
+      properties:
+        id: { type: string }
+        passCode: { type: string }
+        priceLabel: { type: string }
+        validDate: { type: string }
+        venue: { type: string }
+        entriesLeft: { type: integer }
+        kind: { $ref: '#/components/schemas/DayPassKind' }
+        status: { type: string, enum: [booking, active] }
+    Membership:
+      type: object
+      properties:
+        memberCode: { type: string }
+        plan: { type: string }
+        packageType: { type: string }
+        active: { type: boolean }
+        expiry: { type: string }
+        checkinsThisMonth: { type: integer }
+        branch: { type: string }
+    ClubEvent:
+      type: object
+      properties:
+        id: { type: string }
+        date: { type: string }
+        time: { type: string }
+        title: { type: string }
+        place: { type: string }
+        sport: { $ref: '#/components/schemas/Sport' }
+        status: { $ref: '#/components/schemas/AttendStatus' }
+        forClub: { type: string }
+    Club:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        sports: { type: array, items: { $ref: '#/components/schemas/Sport' } }
+        privacy: { $ref: '#/components/schemas/ClubPrivacy' }
+        membersCount: { type: integer }
+        myRole: { $ref: '#/components/schemas/ClubRole' }
+    ClubMember:
+      type: object
+      properties:
+        userId: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/ClubRole' }
+        status: { type: string, enum: [active, pending] }
+    ClubFundTx:
+      type: object
+      properties: { id: { type: string }, label: { type: string }, amount: { type: integer }, kind: { type: string, enum: [in, out] }, date: { type: string } }
+    ClubFund:
+      type: object
+      properties:
+        balance: { type: integer }
+        income: { type: integer }
+        expense: { type: integer }
+        txs: { type: array, items: { $ref: '#/components/schemas/ClubFundTx' } }
+    ClubProgram:
+      type: object
+      properties: { id: { type: string }, title: { type: string }, date: { type: string }, time: { type: string }, place: { type: string }, joined: { type: integer }, capacity: { type: integer }, fee: { type: string } }
+    PollOption:
+      type: object
+      properties: { id: { type: string }, label: { type: string }, votes: { type: integer } }
+    Poll:
+      type: object
+      properties:
+        id: { type: string }
+        club: { type: string }
+        title: { type: string }
+        note: { type: string }
+        eventId: { type: string }
+        closesAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/PollStatus' }
+        options: { type: array, items: { $ref: '#/components/schemas/PollOption' } }
+        myVotes: { type: array, items: { type: string }, description: optionId mà user hiện tại đã chọn }
+        allowMultiple: { type: boolean }
+        allowAddOption: { type: boolean }
+        anonymous: { type: boolean }
+        hideResults: { type: boolean }
+        pinned: { type: boolean }
+        createdBy: { type: string }
+    Match:
+      type: object
+      properties: { id: { type: string }, title: { type: string }, venue: { type: string }, level: { $ref: '#/components/schemas/MatchLevel' }, joined: { type: integer }, capacity: { type: integer }, note: { type: string } }
+    Promo:
+      type: object
+      properties: { id: { type: string }, tab: { type: string }, badge: { type: string }, title: { type: string }, subtitle: { type: string }, ctaLabel: { type: string }, emoji: { type: string } }
+    Payment:
+      type: object
+      properties:
+        id: { type: string }
+        purpose: { $ref: '#/components/schemas/PaymentPurpose' }
+        title: { type: string }
+        amount: { type: integer }
+        code: { type: string }
+        status: { type: string, enum: [pending, paid, failed] }
+        createdAt: { type: string, format: date-time }

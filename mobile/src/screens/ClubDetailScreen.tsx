@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { color, grad, font, radius, space, shadow } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { SegmentedTabs, SegOption } from '../components/chips/SegmentedTabs';
 import { Avatar } from '../components/primitives/Avatar';
 import { Tag } from '../components/primitives/Tag';
+import { PollCard } from '../components/cards/PollCard';
 import { formatVnd } from '../utils/format';
 import { getClub, clubFund, clubMembers, clubPrograms } from '../data/mock';
+import { usePolls } from '../state/PollContext';
 import { ClubTab, ClubViewerRole } from '../types';
 
 const TABS: SegOption<ClubTab>[] = [
@@ -20,9 +23,30 @@ const TABS: SegOption<ClubTab>[] = [
 
 export default function ClubDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ClubDetail'>>();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const role: ClubViewerRole = getClub(params.id)?.myRole ?? 'member';
   const isOwner = role === 'owner';
   const [tab, setTab] = useState<ClubTab>('fund');
+
+  // Tạo bình chọn chỉ dành cho quản trị viên (chủ hội) → nút chỉ hiện khi isOwner.
+  useLayoutEffect(() => {
+    nav.setOptions({
+      headerRight: isOwner
+        ? () => (
+            <Pressable
+              onPress={() => nav.navigate('CreatePoll', { club: params.name })}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Tạo bình chọn"
+              style={styles.headerBtn}
+            >
+              <Ionicons name="add" size={16} color={color.ink} />
+              <Text style={styles.headerBtnTxt}>Bình chọn</Text>
+            </Pressable>
+          )
+        : undefined,
+    });
+  }, [nav, params.name, isOwner]);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: space.xl, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
@@ -39,16 +63,40 @@ export default function ClubDetailScreen() {
       {tab === 'fund' ? <FundView isOwner={isOwner} />
         : tab === 'members' ? <MembersView isOwner={isOwner} />
         : <ProgramsView isOwner={isOwner} />}
+
+      {/* Bình chọn — mục riêng, không nằm trong thanh tab ngang */}
+      <Text style={styles.voteHeading}>Bình chọn của CLB</Text>
+      <VoteView clubName={params.name} isOwner={isOwner} />
     </ScrollView>
   );
 }
 
-function PrimaryAction({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+function PrimaryAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} style={styles.primaryBtn}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.primaryBtn}>
       <Ionicons name={icon} size={16} color={color.volt} />
       <Text style={styles.primaryTxt}>{label}</Text>
     </Pressable>
+  );
+}
+
+/* ---- Bình chọn CLB (gắn lịch sinh hoạt) ---- */
+function VoteView({ clubName }: { clubName: string; isOwner: boolean }) {
+  const { polls, pollsForClub, vote, addOption } = usePolls();
+  const mine = pollsForClub(clubName);
+  const list = mine.length ? mine : polls;   // demo: chưa khớp tên CLB thì hiện tất cả
+  return (
+    <>
+      {list.length ? (
+        list.map(p => (
+          <PollCard key={p.id} poll={p} onVote={opt => vote(p.id, opt)} onAddOption={label => addOption(p.id, label)} />
+        ))
+      ) : (
+        <Text style={{ ...font.sub, color: color.textMuted, textAlign: 'center', paddingVertical: 24 }}>
+          Chưa có cuộc bình chọn nào.
+        </Text>
+      )}
+    </>
   );
 }
 
@@ -196,6 +244,11 @@ const styles = StyleSheet.create({
 
   primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: color.ink, borderRadius: radius.md, paddingVertical: 14, marginTop: 14 },
   primaryTxt: { color: color.volt, fontSize: 14, fontWeight: '800' },
+
+  voteHeading: { ...font.section, color: color.ink, marginTop: 28, marginBottom: 12 },
+  // Ô tạo bình chọn ở góc trên cùng bên phải (header)
+  headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: color.volt, borderRadius: radius.chip, paddingHorizontal: 11, paddingVertical: 6, marginRight: 12 },
+  headerBtnTxt: { ...font.tiny, color: color.ink, fontWeight: '800' },
 
   // Quỹ
   fundCard: { borderRadius: radius.card, padding: 20 },

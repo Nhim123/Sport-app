@@ -1,0 +1,10 @@
+# Cấu hình lint OpenAPI cho Sport-app (tài liệu thiết kế, chưa dựng server).
+# Các quy tắc "style" (operationId, summary bắt buộc, 4xx cho mọi op) hạ xuống
+# mức cảnh báo để không chặn — spec vẫn hợp lệ về cấu trúc.
+extends:
+  - recommended
+rules:
+  operation-operationId: off
+  operation-summary: off
+  operation-4xx-response: off
+  no-server-example.com: off

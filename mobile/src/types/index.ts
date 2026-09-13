@@ -50,6 +50,24 @@ export interface WeekEvent {
   forClub?: string;           // tên CLB nếu là hoạt động của câu lạc bộ
 }
 
+// ---- Bình chọn CLB (gắn với lịch sinh hoạt) ----
+export interface ClubPollOption { id: string; label: string; votes: number }
+export interface ClubPoll {
+  id: string;
+  club: string;               // tên CLB sở hữu cuộc bình chọn
+  title: string;              // "Chốt giờ sinh hoạt tuần tới"
+  note?: string;              // buổi/ngữ cảnh liên quan
+  dayKey?: string;            // gắn với ngày trong lịch tuần → hiện & bỏ phiếu ở màn Lịch
+  closesLabel?: string;       // "Đóng CN" | "còn 2 ngày"
+  options: ClubPollOption[];
+  myVotes: string[];          // các optionId mình đã chọn ([] = chưa bỏ)
+  allowMultiple?: boolean;    // cho phép chọn nhiều phương án
+  allowAddOption?: boolean;   // cho phép thành viên thêm phương án
+  anonymous?: boolean;        // ẩn người bình chọn
+  hideResults?: boolean;      // ẩn kết quả cho tới khi mình đã bỏ phiếu
+  pinned?: boolean;           // ghim lên đầu danh sách CLB
+}
+
 // ---- Gym / membership ----
 export interface GymClass {
   id: string;

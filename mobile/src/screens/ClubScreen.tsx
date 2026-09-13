@@ -7,9 +7,7 @@ import { IconButton } from '../components/primitives/IconButton';
 import { ClubCard } from '../components/cards/ClubCard';
 import { ClubRow } from '../components/cards/ClubRow';
 import { MatchCard } from '../components/cards/MatchCard';
-import { DayPassCard } from '../components/membership/DayPassCard';
-import { myClubs, discoverClubs, matches, clubPass } from '../data/mock';
-import { CLUB_CARD_PROPS } from '../data/passPresets';
+import { myClubs, discoverClubs, matches } from '../data/mock';
 import { usePasses } from '../state/PassContext';
 import { RootStackParamList } from '../navigation/types';
 import { color, font, radius, space, shadow } from '../theme/tokens';
@@ -18,7 +16,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ClubScreen() {
   const nav = useNavigation<Nav>();
-  const { active, joinedClub, joinClub } = usePasses();
+  const { joinedClub } = usePasses();
   // Chuyển sang tab Tìm kiếm để tìm câu lạc bộ.
   const goSearch = () => nav.navigate('MainTabs', { screen: 'Search' });
   // Tài khoản mời truy cập: chưa có câu lạc bộ → hiện 2 lựa chọn Tạo / Tham gia.
@@ -71,7 +69,7 @@ export default function ClubScreen() {
           <Text style={styles.title}>Câu lạc bộ</Text>
           <View style={styles.headerActions}>
             <IconButton name="search" onPress={goSearch} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
-            <IconButton name="add" onPress={() => nav.navigate('JoinClub')} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
+            <IconButton name="add" onPress={() => nav.navigate('CreateClub')} bg={color.ink} iconColor={color.volt} size={42} iconSize={22} />
           </View>
         </View>
 
@@ -83,30 +81,6 @@ export default function ClubScreen() {
         >
           {myClubs.map(c => <ClubCard key={c.id} club={c} onPress={() => nav.navigate('ClubDetail', { id: c.id, name: c.name })} />)}
         </ScrollView>
-
-        <View style={styles.gutter}>
-          <Text style={styles.section}>Vé sinh hoạt CLB</Text>
-          <DayPassCard
-            pass={clubPass}
-            status={active.club ? 'active' : 'booking'}
-            onBook={() => nav.navigate('DayPassPayment', {
-              order: {
-                purpose: 'club',
-                title: 'Vé sinh hoạt câu lạc bộ',
-                brand: clubPass.brand,
-                itemLabel: 'Sân',
-                itemValue: clubPass.venue,
-                address: clubPass.address,
-                date: clubPass.schedule.date,
-                priceLabel: clubPass.priceLabel,
-                code: clubPass.passCode,
-                schedule: clubPass.schedule,
-                passKind: 'club',
-              },
-            })}
-            {...CLUB_CARD_PROPS}
-          />
-        </View>
 
         <View style={styles.gutter}>
           <View style={styles.sectionRow}>

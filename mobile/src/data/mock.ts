@@ -2,7 +2,7 @@ import { grad } from '../theme/tokens';
 import {
   Venue, FilterTab, Slot, DayItem,
   Booking, GymClass, Membership, DayPass, CourtSchedule, Club, Match, MenuItem, ProfileStat, Promo,
-  ClubFund, ClubMember, ClubProgram, WeekEvent,
+  ClubFund, ClubMember, ClubProgram, WeekEvent, ClubPoll,
 } from '../types';
 
 // ---- Promo (thanh quảng cáo Home) — đổi theo bộ môn đang chọn ----
@@ -109,6 +109,41 @@ export const weekEvents: WeekEvent[] = [
   { id: 'we5', dayKey: 'd4', time: '19:30–20:15', title: 'Lớp HIIT Burn', place: 'CityGym Q7', sport: 'gym', status: 'planned' },
   { id: 'we6', dayKey: 'd5', time: 'Cả sáng', title: 'Giải nội bộ CLB', place: 'Pickleball Center Q7', sport: 'pickle', status: 'planned', forClub: 'Q7 Smashers 🏓' },
 ];
+
+// ---- Bình chọn CLB (gắn với lịch sinh hoạt) ----
+export const clubPolls: ClubPoll[] = [
+  {
+    id: 'poll1',
+    club: 'Q7 Smashers 🏓',
+    title: 'Tham dự Giải nội bộ CLB?',
+    note: 'T7 · cả sáng · Pickleball Center Q7',
+    dayKey: 'd5',                       // khớp buổi we6 trong lịch tuần
+    closesLabel: 'Đóng T6',
+    options: [
+      { id: 'p1a', label: 'Có, tham gia', votes: 12 },
+      { id: 'p1b', label: 'Không tham gia', votes: 3 },
+      { id: 'p1c', label: 'Có thể', votes: 5 },
+    ],
+    myVotes: [],
+  },
+  {
+    id: 'poll2',
+    club: 'Q7 Smashers 🏓',
+    title: 'Chốt giờ sinh hoạt tuần tới',
+    note: 'Buổi tập pickleball hằng tuần',
+    closesLabel: 'còn 2 ngày',
+    options: [
+      { id: 'p2a', label: 'Thứ 5 · 19:30', votes: 7 },
+      { id: 'p2b', label: 'Thứ 7 · 18:00', votes: 9 },
+      { id: 'p2c', label: 'Chủ nhật · 08:00', votes: 4 },
+    ],
+    myVotes: [],
+    allowMultiple: true,
+    allowAddOption: true,
+  },
+];
+export const pollForDay = (dayKey?: string): ClubPoll | undefined =>
+  dayKey ? clubPolls.find(p => p.dayKey === dayKey) : undefined;
 
 // ---- Bookings ----
 export const bookings: Booking[] = [
