@@ -1,11 +1,13 @@
 import { createApp } from './app.js';
 import { connectMongo } from './config/db.js';
 import { connectRedis } from './config/redis.js';
+import { startWorkers } from './events/workers.js';
 import { env } from './config/env.js';
 
 async function bootstrap(): Promise<void> {
   await connectMongo();
   await connectRedis();
+  await startWorkers();
 
   const app = createApp();
   app.listen(env.port, () => {
