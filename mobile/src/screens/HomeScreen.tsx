@@ -16,6 +16,7 @@ import { usePasses } from '../state/PassContext';
 import { FilterTab, Venue, Promo } from '../types';
 import { RootStackParamList } from '../navigation/types';
 import { filterVenues, pickHero, listTitle, filterPromos, discoverClubs } from '../data/mock';
+import { useNotifications } from '../state/NotificationContext';
 import { space } from '../theme/tokens';
 
 const TABS: ChipOption<FilterTab>[] = [
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { tab, setTab } = useFilterTab('all');
   const { joinClub } = usePasses();
+  const { unread } = useNotifications();
   const [query, setQuery] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
 
@@ -72,7 +74,13 @@ export default function HomeScreen() {
         windowSize={9}
         ListHeaderComponent={
           <View>
-            <HomeHeader greeting="Chào buổi sáng 👋" name="Minh Khang" avatarIcon="person" />
+            <HomeHeader
+              greeting="Chào buổi sáng 👋"
+              name="Minh Khang"
+              avatarIcon="person"
+              unread={unread}
+              onPressBell={() => nav.navigate('Notifications')}
+            />
             <SearchBar
               value={query}
               onChangeText={setQuery}

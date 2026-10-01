@@ -12,12 +12,14 @@ import { BottomBar } from '../components/booking/BottomBar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'DayPassPayment'>;
 
-interface Method { key: string; label: string; icon: AvatarIcon }
+type PayMethod = 'bank' | 'cash';
+interface Method { key: PayMethod; label: string; sub: string; icon: AvatarIcon }
 const METHODS: Method[] = [
-  { key: 'wallet', label: 'Ví điện tử (MoMo/ZaloPay)', icon: 'wallet-outline' },
-  { key: 'card', label: 'Thẻ ngân hàng', icon: 'card-outline' },
-  { key: 'counter', label: 'Thanh toán tại quầy', icon: 'cash-outline' },
+  { key: 'bank', label: 'Chuyển khoản ngân hàng', sub: 'Chuyển tới tài khoản của chủ sân/CLB', icon: 'card-outline' },
+  { key: 'cash', label: 'Tiền mặt tại sân', sub: 'Trả trực tiếp khi đến sân/buổi sinh hoạt', icon: 'cash-outline' },
 ];
+// Thông tin nhận chuyển khoản (demo). Backend thật sẽ trả theo từng sân/CLB.
+const BANK = { name: 'Vietcombank', account: '0071000456789' };
 
 function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
@@ -32,7 +34,7 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
 export default function PaymentScreen() {
   const nav = useNavigation<Nav>();
   const { order } = useRoute<RouteProp<RootStackParamList, 'DayPassPayment'>>().params;
-  const [method, setMethod] = useState('wallet');
+  const [method, setMethod] = useState<PayMethod>('bank');
 
   const sched = order.schedule;
   const needPick = !order.fixedTime && !!sched;   // vé: chọn giờ tại đây; đặt sân: giờ cố định
@@ -44,7 +46,8 @@ export default function PaymentScreen() {
   const chosenRange =
     order.fixedTime ??
     (selectedSlot ? `${selectedSlot.time}–${addMinutes(selectedSlot.time, sched!.sessionMinutes)}` : null);
-  const canPay = !!chosenRange;
+  const hasTime = !!order.fixedTime || !!sched;     // đơn có khái niệm "giờ" (đặt sân/vé) hay không (đóng quỹ)
+  const canPay = needPick ? !!chosenRange : true;   // đóng quỹ: không cần chọn giờ → cho phép luôn
 
   return (
     <View style={styles.root}>
@@ -57,6 +60,8 @@ export default function PaymentScreen() {
           {order.address ? <Row label="Địa chỉ" value={order.address} last /> : null}
         </View>
 
+        {hasTime ? (
+        <>
         <Text style={styles.section}>Giờ đặt</Text>
         <View style={styles.card}>
           <Row label="Ngày" value={order.date} />
@@ -69,6 +74,8 @@ export default function PaymentScreen() {
             <Row label="Giờ" value={order.fixedTime ?? '—'} last />
           )}
         </View>
+        </>
+        ) : null}
         {needPick ? (
           <>
             <Text style={styles.pickCaption}>Chọn khung giờ theo giờ sân quy định</Text>
@@ -78,7 +85,10 @@ export default function PaymentScreen() {
           </>
         ) : null}
 
-        <Text style={styles.section}>Phương thức thanh toán</Text>
+        <Text style={styles.section}>Hình thức thanh toán</Text>
+        <Text style={styles.leadNote}>
+          Thanh toán gián tiếp — chủ sân/CLB sẽ xác nhận thủ công sau khi nhận được tiền.
+        </Text>
         <View style={styles.card}>
           {METHODS.map((m, i) => {
             const selected = m.key === method;
@@ -91,7 +101,10 @@ export default function PaymentScreen() {
                 style={[styles.method, i < METHODS.length - 1 && styles.methodDivider]}
               >
                 <Ionicons name={m.icon} size={20} color={color.ink} />
-                <Text style={styles.methodTxt}>{m.label}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.methodTxt}>{m.label}</Text>
+                  <Text style={styles.methodSub}>{m.sub}</Text>
+                </View>
                 <Ionicons
                   name={selected ? 'radio-button-on' : 'radio-button-off'}
                   size={20}
@@ -102,6 +115,24 @@ export default function PaymentScreen() {
           })}
         </View>
 
+        {/* Chi tiết theo hình thức */}
+        {method === 'bank' ? (
+          <View style={[styles.card, { marginTop: 12 }]}>
+            <Row label="Ngân hàng" value={BANK.name} />
+            <Row label="Số tài khoản" value={BANK.account} />
+            <Row label="Chủ tài khoản" value={order.brand} />
+            <Row label="Nội dung CK" value={order.code} />
+            <Row label="Số tiền" value={order.priceLabel} last />
+          </View>
+        ) : (
+          <View style={[styles.noteCard, { marginTop: 12 }]}>
+            <Ionicons name="cash-outline" size={18} color={color.ink} />
+            <Text style={styles.noteTxt}>
+              Trả trực tiếp cho chủ sân/CLB khi đến. Đơn có hiệu lực sau khi được xác nhận.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Tổng thanh toán</Text>
           <Text style={styles.totalValue}>{order.priceLabel}</Text>
@@ -109,11 +140,11 @@ export default function PaymentScreen() {
       </ScrollView>
 
       <BottomBar
-        summary={chosenRange ? order.date + ' · ' + chosenRange : 'Chọn khung giờ'}
+        summary={chosenRange ? order.date + ' · ' + chosenRange : (needPick ? 'Chọn khung giờ' : order.itemValue)}
         priceLabel={order.priceLabel}
-        ctaLabel="Thanh toán"
+        ctaLabel={method === 'bank' ? 'Tôi đã chuyển khoản' : 'Gửi yêu cầu'}
         ctaDisabled={!canPay}
-        onPress={() => nav.navigate('DayPassConfirm', { order: { ...order, fixedTime: chosenRange ?? undefined } })}
+        onPress={() => nav.navigate('DayPassConfirm', { order: { ...order, fixedTime: chosenRange ?? undefined, payMethod: method } })}
       />
     </View>
   );
@@ -130,9 +161,13 @@ const styles = StyleSheet.create({
   rowLast: { borderBottomWidth: 0 },
   rowLabel: { ...font.sub, color: color.textMuted, fontWeight: '600' },
   rowValue: { flex: 1, textAlign: 'right', marginLeft: 16, fontSize: 13.5, fontWeight: '700', color: color.ink },
-  method: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  leadNote: { ...font.sub, color: color.textMuted, marginTop: -4, marginBottom: 12, lineHeight: 18 },
+  method: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
   methodDivider: { borderBottomWidth: 1, borderBottomColor: '#ECEAE5' },
-  methodTxt: { flex: 1, fontSize: 14, fontWeight: '700', color: color.ink },
+  methodTxt: { fontSize: 14, fontWeight: '700', color: color.ink },
+  methodSub: { ...font.sub, color: color.textMuted, marginTop: 2 },
+  noteCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#EEF7D0', borderRadius: radius.card, padding: 14 },
+  noteTxt: { flex: 1, ...font.sub, color: color.ink, lineHeight: 18 },
   totalCard: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: '#EEF7D0', borderRadius: radius.card, padding: 16, marginTop: 20,

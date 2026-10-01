@@ -7,7 +7,7 @@ import { IconButton } from '../components/primitives/IconButton';
 import { ClubCard } from '../components/cards/ClubCard';
 import { ClubRow } from '../components/cards/ClubRow';
 import { MatchCard } from '../components/cards/MatchCard';
-import { myClubs, discoverClubs, matches } from '../data/mock';
+import { myClubs, matches, rankedDiscoverClubs } from '../data/mock';
 import { usePasses } from '../state/PassContext';
 import { RootStackParamList } from '../navigation/types';
 import { color, font, radius, space, shadow } from '../theme/tokens';
@@ -17,6 +17,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function ClubScreen() {
   const nav = useNavigation<Nav>();
   const { joinedClub } = usePasses();
+  // Khám phá CLB đã xếp hạng: ưu tiên CLB có bạn chung → gần sân → sinh hoạt tích cực.
+  const discover = rankedDiscoverClubs();
   // Chuyển sang tab Tìm kiếm để tìm câu lạc bộ.
   const goSearch = () => nav.navigate('MainTabs', { screen: 'Search' });
   // Tài khoản mời truy cập: chưa có câu lạc bộ → hiện 2 lựa chọn Tạo / Tham gia.
@@ -55,7 +57,8 @@ export default function ClubScreen() {
             </Pressable>
 
             <Text style={styles.section}>Khám phá CLB</Text>
-            {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
+            <Text style={styles.discoverSub}>Gợi ý theo bạn chung · gần sân · mức sinh hoạt</Text>
+            {discover.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
           </View>
         </ScrollView>
       </Screen>
@@ -92,7 +95,8 @@ export default function ClubScreen() {
 
         <View style={styles.gutter}>
           <Text style={styles.section}>Khám phá CLB</Text>
-          {discoverClubs.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
+          <Text style={styles.discoverSub}>Gợi ý theo bạn chung · gần sân · mức sinh hoạt</Text>
+          {discover.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
         </View>
       </ScrollView>
     </Screen>
@@ -107,6 +111,7 @@ const styles = StyleSheet.create({
   section: { ...font.section, color: color.ink, marginTop: 26, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sub: { ...font.sub, color: color.textMuted, fontWeight: '600' },
+  discoverSub: { ...font.sub, color: color.textMuted, marginTop: -6, marginBottom: 12 },
 
   // Empty state (tài khoản mời truy cập)
   lead: { ...font.body, color: color.textMuted, marginTop: 12, marginBottom: 4 },

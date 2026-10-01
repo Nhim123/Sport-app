@@ -2,7 +2,7 @@ import { grad } from '../theme/tokens';
 import {
   Venue, FilterTab, Slot, DayItem,
   Booking, GymClass, Membership, DayPass, CourtSchedule, Club, Match, MenuItem, ProfileStat, Promo,
-  ClubFund, ClubMember, ClubProgram, WeekEvent, ClubPoll,
+  ClubFund, ClubMember, ClubProgram, WeekEvent, ClubPoll, JoinRequest, AppNotification, FundCollection,
 } from '../types';
 
 // ---- Promo (thanh quảng cáo Home) — đổi theo bộ môn đang chọn ----
@@ -118,7 +118,8 @@ export const clubPolls: ClubPoll[] = [
     title: 'Tham dự Giải nội bộ CLB?',
     note: 'T7 · cả sáng · Pickleball Center Q7',
     dayKey: 'd5',                       // khớp buổi we6 trong lịch tuần
-    closesLabel: 'Đóng T6',
+    closesLabel: 'còn 2 ngày',
+    closesAt: Date.now() + 2 * 86_400_000,   // còn mở
     options: [
       { id: 'p1a', label: 'Có, tham gia', votes: 12 },
       { id: 'p1b', label: 'Không tham gia', votes: 3 },
@@ -132,6 +133,7 @@ export const clubPolls: ClubPoll[] = [
     title: 'Chốt giờ sinh hoạt tuần tới',
     note: 'Buổi tập pickleball hằng tuần',
     closesLabel: 'còn 2 ngày',
+    closesAt: Date.now() - 3_600_000,        // đã hết giờ → khoá bình chọn
     options: [
       { id: 'p2a', label: 'Thứ 5 · 19:30', votes: 7 },
       { id: 'p2b', label: 'Thứ 7 · 18:00', votes: 9 },
@@ -207,22 +209,42 @@ export const gymClasses: GymClass[] = [
 
 // ---- Club ----
 export const myClubs: Club[] = [
-  { id: 'cl1', name: 'Q7 Smashers 🏓', sports: ['pickle', 'football'], gradient: grad.dark, members: 48, note: 'buổi tiếp: T7 18:00', joined: true, myRole: 'owner' },
-  { id: 'cl2', name: 'Sáng Sớm Gym 🏋️', sports: ['gym'], gradient: grad.green, members: 32, note: '5:30 mỗi sáng', joined: true, myRole: 'member' },
+  { id: 'cl1', name: 'Q7 Smashers 🏓', sports: ['pickle', 'football'], gradient: grad.dark, members: 48, note: 'buổi tiếp: T7 18:00', joined: true, myRole: 'owner', privacy: 'approval' },
+  { id: 'cl2', name: 'Sáng Sớm Gym 🏋️', sports: ['gym'], gradient: grad.green, members: 32, note: '5:30 mỗi sáng', joined: true, myRole: 'member', privacy: 'open' },
 ];
 export const getClub = (id: string): Club | undefined =>
   [...myClubs, ...discoverClubs].find(c => c.id === id);
 export const discoverClubs: Club[] = [
-  { id: 'cl3', name: 'Nhà Bè Pickleball', sports: ['pickle'], gradient: grad.green, members: 120, note: 'gần bạn 1.2km' },
-  { id: 'cl4', name: 'Gym Buddies Q7', sports: ['gym', 'pickle'], gradient: grad.olive, members: 86, note: 'tập nhóm buổi tối' },
-  { id: 'cl5', name: 'FC Phủi Quận 7 ⚽', sports: ['football'], gradient: grad.dark, members: 64, note: 'đá tối T3 & T5' },
+  { id: 'cl3', name: 'Nhà Bè Pickleball', sports: ['pickle'], gradient: grad.green, members: 120, note: 'gần bạn 1.2km', mutualMembers: 0, distanceKm: 1.2, sessionsPerWeek: 4, privacy: 'open' },
+  { id: 'cl4', name: 'Gym Buddies Q7', sports: ['gym', 'pickle'], gradient: grad.olive, members: 86, note: 'tập nhóm buổi tối', mutualMembers: 5, distanceKm: 3.5, sessionsPerWeek: 2, privacy: 'approval' },
+  { id: 'cl5', name: 'FC Phủi Quận 7 ⚽', sports: ['football'], gradient: grad.dark, members: 64, note: 'đá tối T3 & T5', mutualMembers: 2, distanceKm: 2.0, sessionsPerWeek: 2, privacy: 'open' },
 ];
+
+// Yêu cầu tham gia đang chờ chủ hội/quản trị duyệt (seed cho CLB mình làm chủ: cl1).
+export const joinRequestsSeed: JoinRequest[] = [
+  { id: 'jr1', clubId: 'cl1', name: 'Tuấn Anh', initials: 'TA', note: 'Muốn tham gia nhóm pickle tối T7' },
+  { id: 'jr2', clubId: 'cl1', name: 'Lê Vy', initials: 'LV', note: 'Bạn của Minh Khang' },
+  { id: 'jr3', clubId: 'cl1', name: 'Quang Huy', initials: 'QH' },
+];
+
+// Khám phá CLB — xếp hạng theo nguyên tắc:
+//   (1) Ưu tiên CLB có thành viên chung với CLB của bạn (mutualMembers) — trọng số lớn nhất.
+//   (2) Rồi tới CLB gần sân bạn hay chơi (distanceKm nhỏ) và sinh hoạt tích cực (sessionsPerWeek).
+export function discoverScore(c: Club): number {
+  const mutual = c.mutualMembers ?? 0;
+  const proximity = c.distanceKm != null ? Math.max(0, 10 - c.distanceKm) : 0;
+  const activity = c.sessionsPerWeek ?? 0;
+  return mutual * 100 + proximity * 3 + activity * 5;
+}
+export function rankedDiscoverClubs(): Club[] {
+  return [...discoverClubs].sort((a, b) => discoverScore(b) - discoverScore(a));
+}
 
 // ---- Chức năng chi tiết CLB (dùng chung cho demo) ----
 export const clubFund: ClubFund = {
   balance: 4820000, income: 6200000, expense: 1380000,
   txs: [
-    { id: 't1', label: 'Đóng quỹ tháng 8 · 24 thành viên', amount: 2400000, kind: 'in', date: '01/08' },
+    { id: 't1', label: 'Đóng quỹ tháng 8', amount: 2400000, kind: 'in', date: '01/08', collectionId: 'col1' },
     { id: 't2', label: 'Tài trợ giải nội bộ', amount: 1500000, kind: 'in', date: '10/08' },
     { id: 't3', label: 'Thuê sân giao lưu T7', amount: 640000, kind: 'out', date: '03/08' },
     { id: 't4', label: 'Mua bóng & nước', amount: 320000, kind: 'out', date: '05/08' },
@@ -239,6 +261,14 @@ export const clubMembers: ClubMember[] = [
   { id: 'u6', name: 'Gia Hân', initials: 'GH', role: 'Thành viên' },
 ];
 
+// Đợt thu quỹ (seed) — 2/6 hội viên đã đóng, để demo số người đã đóng.
+export const fundCollectionsSeed: FundCollection[] = [
+  {
+    id: 'col1', clubId: 'cl1', label: 'Đóng quỹ tháng 8', perMember: 100000,
+    payers: clubMembers.map((m, i) => ({ memberId: m.id, name: m.name, initials: m.initials, paid: i < 2 })),
+  },
+];
+
 export const clubPrograms: ClubProgram[] = [
   { id: 'pg1', title: 'Buổi tập kỹ thuật', date: 'T7, 16/08', time: '18:00–20:00', place: 'Sân Q7', joined: 12, capacity: 16 },
   { id: 'pg2', title: 'Giao lưu với CLB bạn', date: 'CN, 17/08', time: '08:00–11:00', place: 'Nhà Bè', joined: 20, capacity: 24, fee: '30K' },
@@ -250,6 +280,18 @@ export const matches: Match[] = [
   { id: 'm2', title: 'Giao lưu tối T5', venue: 'Smash Arena · 20:00 · vui là chính',
     gradient: grad.olive, level: 'Mọi trình độ', joined: 6, capacity: 8 },
 ];
+
+// ---- Thông báo (chuông Trang chủ): cập nhật mới + chương trình CLB ----
+export const notifications: AppNotification[] = [
+  { id: 'n1', kind: 'update', emoji: '🗳️', title: 'Bình chọn mới · Q7 Smashers', body: '“Chốt giờ sinh hoạt tuần tới” — hãy bỏ phiếu trước khi đóng', time: '10 phút trước', unread: true },
+  { id: 'n2', kind: 'update', emoji: '✅', title: 'Yêu cầu tham gia được duyệt', body: 'Bạn đã trở thành thành viên Nhà Bè Pickleball', time: '1 giờ trước', unread: true },
+  { id: 'n3', kind: 'update', emoji: '💰', title: 'Cập nhật quỹ CLB', body: 'Q7 Smashers thêm khoản chi “Thuê sân giao lưu T7”', time: 'Hôm qua' },
+  { id: 'n4', kind: 'update', emoji: '🎁', title: 'Ưu đãi giờ vàng', body: 'Giảm 30% khung 12h–15h pickleball tuần này', time: 'Hôm qua' },
+  { id: 'p1', kind: 'program', emoji: '🏓', title: 'Buổi tập kỹ thuật', body: 'T7, 16/08 · 18:00–20:00 · Sân Q7', time: 'Sắp diễn ra', unread: true },
+  { id: 'p2', kind: 'program', emoji: '🤝', title: 'Giao lưu với CLB bạn', body: 'CN, 17/08 · 08:00–11:00 · Nhà Bè', time: 'Sắp diễn ra' },
+  { id: 'p3', kind: 'program', emoji: '🏆', title: 'Giải nội bộ tháng 8', body: 'T7, 30/08 · Cả ngày · Pickleball Center Q7', time: 'Sắp diễn ra' },
+];
+export const unreadNotiCount = notifications.filter(n => n.unread).length;
 
 // ---- Profile ----
 export const profileStats: ProfileStat[] = [

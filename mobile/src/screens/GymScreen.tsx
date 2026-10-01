@@ -10,6 +10,7 @@ import { DayPassCard } from '../components/membership/DayPassCard';
 import { ClassCard } from '../components/cards/ClassCard';
 import { SegmentedTabs, SegOption } from '../components/chips/SegmentedTabs';
 import { usePasses } from '../state/PassContext';
+import { useFeatures } from '../state/FeatureContext';
 import { GymMode } from '../types';
 import { RootStackParamList } from '../navigation/types';
 
@@ -33,6 +34,7 @@ export default function GymScreen() {
   const nav = useNavigation<Nav>();
   const route = useRoute<RouteProp<RootStackParamList, 'Gym'>>();
   const { active } = usePasses();
+  const features = useFeatures();
   const [mode, setMode] = useState<GymMode>(route.params?.mode ?? 'package');
 
   // Về từ luồng thanh toán với { mode: 'daypass' } → mở đúng tab vé ngày.
@@ -40,7 +42,9 @@ export default function GymScreen() {
     if (route.params?.mode) setMode(route.params.mode);
   }, [route.params?.mode]);
 
-  const isPackage = mode === 'package';
+  // Chủ sân tắt "vé cá nhân" → chỉ còn Gói tập, luôn hiển thị dạng package.
+  const isPackage = features.personalDayPass ? mode === 'package' : true;
+  const modeOptions = features.personalDayPass ? MODES : MODES.filter(m => m.key === 'package');
 
   // Vé ngày: hiển thị vé đã kích hoạt (ưu tiên cá nhân, kế đến CLB), nếu chưa mua thì trạng thái đặt vé.
   const showClub = active.club && !active.personal;
@@ -50,8 +54,12 @@ export default function GymScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: space.xl, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-      <SegmentedTabs value={mode} options={MODES} onChange={setMode} />
-      <View style={{ height: 18 }} />
+      {features.personalDayPass ? (
+        <>
+          <SegmentedTabs value={mode} options={modeOptions} onChange={setMode} />
+          <View style={{ height: 18 }} />
+        </>
+      ) : null}
 
       {isPackage ? (
         <MemberCard membership={membership} />
@@ -100,8 +108,12 @@ export default function GymScreen() {
         </>
       )}
 
-      <Text style={styles.section}>Lớp hôm nay</Text>
-      {gymClasses.map(c => <ClassCard key={c.id} item={c} onRegister={() => {}} />)}
+      {features.gymClasses ? (
+        <>
+          <Text style={styles.section}>Lớp hôm nay</Text>
+          {gymClasses.map(c => <ClassCard key={c.id} item={c} onRegister={() => {}} />)}
+        </>
+      ) : null}
     </ScrollView>
   );
 }

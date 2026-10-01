@@ -11,6 +11,7 @@ import { VenueCard } from '../components/cards/VenueCard';
 import { ClubRow } from '../components/cards/ClubRow';
 import { venues, discoverClubs } from '../data/mock';
 import { usePasses } from '../state/PassContext';
+import { useClubRequests } from '../state/ClubRequestContext';
 import { RootStackParamList } from '../navigation/types';
 import { FilterTab, Venue, Club } from '../types';
 import { color, font, space } from '../theme/tokens';
@@ -28,6 +29,7 @@ const SPORTS: ChipOption<FilterTab>[] = [
 export default function SearchScreen() {
   const nav = useNavigation<Nav>();
   const { joinClub } = usePasses();
+  const { requestJoin } = useClubRequests();
   const [sport, setSport] = useState<FilterTab>('all');
   const [query, setQuery] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
@@ -53,6 +55,11 @@ export default function SearchScreen() {
   };
 
   const joinClubAndOpen = (c: Club) => {
+    if (c.privacy === 'approval') {
+      requestJoin(c.id);
+      nav.navigate('ClubPending', { id: c.id, name: c.name });
+      return;
+    }
     joinClub();
     nav.navigate('ClubDetail', { id: c.id, name: c.name });
   };
