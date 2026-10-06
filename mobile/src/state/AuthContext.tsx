@@ -2,17 +2,32 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type AuthProviderKind = 'password' | 'google';
+export type Gender = 'male' | 'female' | 'other';
+export type FavoriteSport = 'pickle' | 'gym' | 'football';
+
 export interface AuthUser {
   name: string;
   email: string;
   provider: AuthProviderKind;
+  phone?: string;
+  gender?: Gender;
+  favoriteSport?: FavoriteSport;
+}
+
+// Thông tin nhập khi tạo tài khoản mới.
+export interface RegisterInput {
+  name: string;
+  email: string;
+  phone?: string;
+  gender?: Gender;
+  favoriteSport?: FavoriteSport;
 }
 
 interface Ctx {
   user: AuthUser | null;
   loading: boolean;                                  // đang đọc phiên đăng nhập đã lưu
   signIn: (email: string) => void;                   // đăng nhập bằng email/mật khẩu (demo)
-  register: (name: string, email: string) => void;   // đăng ký tài khoản mới (demo)
+  register: (data: RegisterInput) => void;           // đăng ký tài khoản mới (demo)
   signInWithGoogle: (account?: { name: string; email: string }) => void;  // OAuth thật (có account) hoặc demo (không)
   signOut: () => void;
 }
@@ -57,8 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     save({ name: nameFromEmail(email), email: email.trim(), provider: 'password' });
   }, [save]);
 
-  const register = useCallback((name: string, email: string) => {
-    save({ name: name.trim(), email: email.trim(), provider: 'password' });
+  const register = useCallback((data: RegisterInput) => {
+    save({
+      name: data.name.trim(),
+      email: data.email.trim(),
+      provider: 'password',
+      phone: data.phone?.trim() || undefined,
+      gender: data.gender,
+      favoriteSport: data.favoriteSport,
+    });
   }, [save]);
 
   // Có `account` (từ OAuth thật qua useGoogleAuth) → dùng tên/email thật;
