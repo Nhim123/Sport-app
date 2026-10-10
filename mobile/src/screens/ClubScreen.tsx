@@ -6,8 +6,9 @@ import { Screen } from '../components/Screen';
 import { IconButton } from '../components/primitives/IconButton';
 import { ClubCard } from '../components/cards/ClubCard';
 import { ClubRow } from '../components/cards/ClubRow';
-import { MatchCard } from '../components/cards/MatchCard';
-import { myClubs, matches, rankedDiscoverClubs } from '../data/mock';
+import { TournamentCard } from '../components/cards/TournamentCard';
+import { myClubs, rankedDiscoverClubs } from '../data/mock';
+import { tournaments } from '../data/tournaments';
 import { usePasses } from '../state/PassContext';
 import { RootStackParamList } from '../navigation/types';
 import { color, font, radius, space, shadow } from '../theme/tokens';
@@ -87,10 +88,10 @@ export default function ClubScreen() {
 
         <View style={styles.gutter}>
           <View style={styles.sectionRow}>
-            <Text style={styles.section}>Tìm bạn chơi</Text>
-            <Text style={styles.sub}>Trình độ của bạn: Trung cấp</Text>
+            <Text style={styles.section}>Tham gia giải thi đấu</Text>
+            <Text style={styles.sub}>Giải mở đăng ký</Text>
           </View>
-          {matches.map(m => <MatchCard key={m.id} match={m} onJoin={() => {}} />)}
+          {tournaments.map(t => <TournamentCard key={t.id} tournament={t} onRegister={() => nav.navigate('TournamentRegister', { id: t.id })} />)}
         </View>
 
         <View style={styles.gutter}>

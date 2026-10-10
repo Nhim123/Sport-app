@@ -10,6 +10,7 @@ import ClubDetailScreen from '../screens/ClubDetailScreen';
 import JoinClubScreen from '../screens/JoinClubScreen';
 import CreateClubScreen from '../screens/CreateClubScreen';
 import CreatePollScreen from '../screens/CreatePollScreen';
+import TournamentRegisterScreen from '../screens/TournamentRegisterScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ClubPendingScreen from '../screens/ClubPendingScreen';
@@ -86,6 +87,7 @@ export function RootNavigator() {
         <Stack.Screen name="JoinClub" component={JoinClubScreen} options={{ title: 'Tham gia CLB' }} />
         <Stack.Screen name="CreateClub" component={CreateClubScreen} options={{ title: 'Tạo câu lạc bộ' }} />
         <Stack.Screen name="CreatePoll" component={CreatePollScreen} options={{ title: 'Tạo bình chọn' }} />
+        <Stack.Screen name="TournamentRegister" component={TournamentRegisterScreen} options={{ title: 'Đăng ký giải đấu' }} />
           </>
         )}
       </Stack.Navigator>

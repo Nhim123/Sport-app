@@ -27,4 +27,5 @@ export type RootStackParamList = {
   JoinClub: undefined;
   CreateClub: undefined;
   CreatePoll: { club: string };
+  TournamentRegister: { id: string };
 };
