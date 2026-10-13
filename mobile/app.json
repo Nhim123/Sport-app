@@ -16,9 +16,6 @@
         "backgroundColor": "#0f172a"
       }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
     "plugins": [
       "expo-status-bar",
       "expo-font",
@@ -29,7 +26,16 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-asset",
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "Sportapp dùng vị trí để hiển thị sân gần bạn trên bản đồ." }
+      ],
+      [
+        "expo-camera",
+        { "cameraPermission": "Sportapp dùng camera để quét mã QR tham gia câu lạc bộ." }
+      ]
     ]
   }
 }

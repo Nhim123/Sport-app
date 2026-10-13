@@ -89,13 +89,20 @@ export default function ClubScreen() {
         <View style={styles.gutter}>
           <View style={styles.sectionRow}>
             <Text style={styles.section}>Tham gia giải thi đấu</Text>
-            <Text style={styles.sub}>Giải mở đăng ký</Text>
+            <Pressable onPress={() => nav.navigate('TournamentList')} hitSlop={8} accessibilityRole="button">
+              <Text style={styles.seeAll}>Xem tất cả ›</Text>
+            </Pressable>
           </View>
-          {tournaments.map(t => <TournamentCard key={t.id} tournament={t} onRegister={() => nav.navigate('TournamentRegister', { id: t.id })} />)}
+          {tournaments.slice(0, 2).map(t => <TournamentCard key={t.id} tournament={t} onRegister={() => nav.navigate('TournamentRegister', { id: t.id })} />)}
         </View>
 
         <View style={styles.gutter}>
-          <Text style={styles.section}>Khám phá CLB</Text>
+          <View style={styles.sectionRow}>
+            <Text style={styles.section}>Khám phá CLB</Text>
+            <Pressable onPress={() => nav.navigate('ClubList')} hitSlop={8} accessibilityRole="button">
+              <Text style={styles.seeAll}>Xem tất cả ›</Text>
+            </Pressable>
+          </View>
           <Text style={styles.discoverSub}>Gợi ý theo bạn chung · gần sân · mức sinh hoạt</Text>
           {discover.map(c => <ClubRow key={c.id} club={c} onJoin={() => nav.navigate('JoinClub')} />)}
         </View>
@@ -112,6 +119,7 @@ const styles = StyleSheet.create({
   section: { ...font.section, color: color.ink, marginTop: 26, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sub: { ...font.sub, color: color.textMuted, fontWeight: '600' },
+  seeAll: { ...font.sub, color: color.voltDark, fontWeight: '800', marginTop: 26, marginBottom: 12 },
   discoverSub: { ...font.sub, color: color.textMuted, marginTop: -6, marginBottom: 12 },
 
   // Empty state (tài khoản mời truy cập)

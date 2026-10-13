@@ -26,7 +26,7 @@ const SPORTS: { key: FavoriteSport; label: string }[] = [
 
 export default function RegisterScreen() {
   const nav = useNavigation<Nav>();
-  const { register, signInWithGoogle } = useAuth();
+  const { register, signInWithGoogle, requestOtp } = useAuth();
   const google = useGoogleAuth(acc => signInWithGoogle(acc));
   const onGoogle = () => (google.ready ? google.prompt() : signInWithGoogle());
 
@@ -39,14 +39,30 @@ export default function RegisterScreen() {
   const [confirm, setConfirm] = useState('');
   const [show, setShow] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [sentCode, setSentCode] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpHint, setOtpHint] = useState('');
 
   const pw = evaluatePassword(password);
   const match = pw.strong && password === confirm;   // mật khẩu phải ĐẠT chính sách mạnh + khớp
-  const canRegister = name.trim().length >= 2 && emailOk(email) && phoneOk(phone) && match && agree;
+  const canRegister = name.trim().length >= 2 && emailOk(email) && phoneVerified && match && agree;
+
+  // Xác thực SĐT bằng OTP ngay trong form đăng ký (demo: so khớp mã requestOtp trả về).
+  const sendCode = async () => {
+    if (!/^0\d{8,10}$/.test(phone.trim())) return;
+    const c = await requestOtp(phone);
+    setSentCode(c); setOtpSent(true); setOtp(''); setOtpHint('Mã demo: ' + c);
+  };
+  const verifyCode = () => {
+    if (sentCode && otp.trim() === sentCode) { setPhoneVerified(true); setOtpHint(''); }
+    else setOtpHint('Mã OTP không đúng, thử lại.');
+  };
 
   const submit = () => {
     if (!canRegister) return;
-    register({ name, email, phone, gender: gender ?? undefined, favoriteSport: sport ?? undefined });
+    register({ name, email, phone, phoneVerified: true, gender: gender ?? undefined, favoriteSport: sport ?? undefined });
   };
 
   return (
@@ -70,13 +86,32 @@ export default function RegisterScreen() {
               placeholderTextColor={color.textFaint} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" />
           </View>
 
-          <Text style={styles.label}>Số điện thoại</Text>
+          <Text style={styles.label}>Số điện thoại * (cần xác thực)</Text>
           <View style={styles.inputRow}>
             <Ionicons name="call-outline" size={18} color={color.textMuted} />
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="VD: 0901234567"
-              placeholderTextColor={color.textFaint} keyboardType="phone-pad" returnKeyType="next" />
+            <TextInput style={styles.input} value={phone} editable={!phoneVerified}
+              onChangeText={t => { setPhone(t); setPhoneVerified(false); setOtpSent(false); setOtpHint(''); }}
+              placeholder="VD: 0901234567" placeholderTextColor={color.textFaint} keyboardType="phone-pad" returnKeyType="next" />
+            {phoneVerified ? (
+              <Ionicons name="shield-checkmark" size={18} color={color.voltDark} />
+            ) : (
+              <Pressable onPress={sendCode} disabled={!phoneOk(phone) || phone.trim() === ''} hitSlop={8} accessibilityRole="button">
+                <Text style={[styles.linkBtn, (!phoneOk(phone) || phone.trim() === '') && styles.linkBtnOff]}>{otpSent ? 'Gửi lại' : 'Gửi mã'}</Text>
+              </Pressable>
+            )}
           </View>
           {phone.length > 0 && !phoneOk(phone) ? <Text style={styles.err}>Số điện thoại chưa hợp lệ.</Text> : null}
+          {otpSent && !phoneVerified ? (
+            <View style={[styles.inputRow, { marginTop: 10 }]}>
+              <Ionicons name="keypad-outline" size={18} color={color.textMuted} />
+              <TextInput style={styles.input} value={otp} onChangeText={t => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Nhập mã OTP 6 số" placeholderTextColor={color.textFaint} keyboardType="number-pad" maxLength={6}
+                returnKeyType="done" onSubmitEditing={verifyCode} />
+              <Pressable onPress={verifyCode} hitSlop={8} accessibilityRole="button"><Text style={styles.linkBtn}>Xác nhận</Text></Pressable>
+            </View>
+          ) : null}
+          {otpHint ? <Text style={otpHint.startsWith('Mã demo') ? styles.devHint : styles.err}>{otpHint}</Text> : null}
+          {phoneVerified ? <Text style={styles.okTxt}>Đã xác thực số điện thoại.</Text> : null}
 
           <Text style={styles.label}>Giới tính</Text>
           <View style={styles.chipRow}>
@@ -161,6 +196,10 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, ...font.body, color: color.ink, padding: 0 },
   err: { ...font.sub, color: color.danger, marginTop: 8 },
+  linkBtn: { ...font.sub, color: color.voltDark, fontWeight: '800' },
+  linkBtnOff: { color: color.textFaint },
+  devHint: { ...font.sub, color: color.voltDark, fontWeight: '700', marginTop: 8 },
+  okTxt: { ...font.sub, color: color.voltDark, fontWeight: '700', marginTop: 8 },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.chip },

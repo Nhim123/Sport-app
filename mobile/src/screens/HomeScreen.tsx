@@ -77,7 +77,6 @@ export default function HomeScreen() {
             <HomeHeader
               greeting="Chào buổi sáng 👋"
               name="Minh Khang"
-              avatarIcon="person"
               unread={unread}
               onPressBell={() => nav.navigate('Notifications')}
             />

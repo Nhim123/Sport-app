@@ -1,17 +1,15 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { color, font, shadow } from '../../theme/tokens';
-import { Avatar, AvatarIcon } from '../primitives/Avatar';
 
 interface Props {
   greeting: string;
   name: string;
-  avatarIcon?: AvatarIcon;
   onPressBell?: () => void;   // mở màn thông báo
   unread?: number;            // số thông báo chưa đọc → badge
 }
 
-export function HomeHeader({ greeting, name, avatarIcon = 'person', onPressBell, unread = 0 }: Props) {
+export function HomeHeader({ greeting, name, onPressBell, unread = 0 }: Props) {
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
@@ -27,8 +25,6 @@ export function HomeHeader({ greeting, name, avatarIcon = 'person', onPressBell,
           </View>
         ) : null}
       </Pressable>
-
-      <Avatar icon={avatarIcon} />
     </View>
   );
 }
