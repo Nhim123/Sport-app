@@ -59,6 +59,8 @@ export interface ClubPoll {
   note?: string;              // buổi/ngữ cảnh liên quan
   dayKey?: string;            // gắn với ngày trong lịch tuần → hiện & bỏ phiếu ở màn Lịch
   closesLabel?: string;       // "Đóng CN" | "còn 2 ngày"
+  closesAt?: number;          // mốc kết thúc (epoch ms); quá mốc → tự khoá bình chọn
+  closed?: boolean;           // khoá thủ công (chủ hội đóng sớm)
   options: ClubPollOption[];
   myVotes: string[];          // các optionId mình đã chọn ([] = chưa bỏ)
   allowMultiple?: boolean;    // cho phép chọn nhiều phương án
@@ -126,11 +128,17 @@ export interface Club {
   id: string;
   name: string;               // "Q7 Smashers 🏓"
   sports: Sport[];            // các bộ môn CLB triển khai (1 hoặc nhiều)
-  gradient: readonly [string, string];
+  logoEmoji?: string;         // biểu tượng logo CLB (tự tạo lúc lập CLB)
+  privacy?: 'open' | 'approval';   // công khai | cần chủ hội duyệt
+  gradient: readonly [string, string];  // màu nền logo
   members: number;
   note: string;               // "buổi tiếp: T7 18:00" | "gần bạn 1.2km"
   joined?: boolean;
   myRole?: ClubViewerRole;    // chỉ có khi đã tham gia
+  // --- Tín hiệu gợi ý (khám phá CLB) ---
+  mutualMembers?: number;     // số thành viên chung với CLB của bạn (ưu tiên 1)
+  distanceKm?: number;        // khoảng cách tới sân bạn hay chơi (ưu tiên 2)
+  sessionsPerWeek?: number;   // mức sinh hoạt: số buổi/tuần (ưu tiên 2)
 }
 
 // ---- Chức năng chi tiết CLB ----
@@ -138,11 +146,19 @@ export type ClubTab = 'fund' | 'members' | 'programs';
 
 export interface ClubFundTx {
   id: string; label: string; amount: number; kind: 'in' | 'out'; date: string;
+  collectionId?: string;   // khoản thu theo đợt → theo dõi ai đã đóng
 }
+
+// Đợt thu quỹ: mức mỗi hội viên + danh sách người đã/chưa đóng
+export interface CollectionPayer { memberId: string; name: string; initials: string; paid: boolean }
+export interface FundCollection { id: string; clubId: string; label: string; perMember: number; payers: CollectionPayer[] }
 export interface ClubFund { balance: number; income: number; expense: number; txs: ClubFundTx[] }
 
 export type ClubRole = 'Chủ nhiệm' | 'Quản lý' | 'Thành viên';
 export interface ClubMember { id: string; name: string; initials: string; role: ClubRole; note?: string }
+
+// Yêu cầu tham gia CLB (chờ chủ hội/quản trị duyệt)
+export interface JoinRequest { id: string; clubId: string; name: string; initials: string; note?: string }
 
 export interface ClubProgram {
   id: string; title: string; date: string; time: string; place: string;
@@ -157,6 +173,19 @@ export interface Match {
   joined: number;             // 2
   capacity: number;           // 4
   note?: string;              // "chia sân 20K/người"
+}
+
+// ---- Thông báo (chuông ở Trang chủ) ----
+export type NotiKind = 'update' | 'program';   // cập nhật mới | chương trình CLB
+export interface AppNotification {
+  id: string;
+  kind: NotiKind;
+  emoji: string;
+  title: string;
+  body: string;
+  time: string;
+  unread?: boolean;
+  due?: { club: string; label: string; amount: number; collectionId?: string };   // có = khoản thu cần nộp → hiện nút "Nộp tiền"
 }
 
 // ---- Profile ----
@@ -195,4 +224,6 @@ export interface PaymentOrder {
   fixedTime?: string;                      // "18:00–19:00" khi đã chọn giờ trước
   schedule?: CourtSchedule;                // nguồn khung giờ khi chọn tại màn thanh toán
   passKind?: DayPassKind;                  // có = kích hoạt vé khi thanh toán xong
+  payMethod?: 'bank' | 'cash';             // thanh toán gián tiếp: chuyển khoản | tiền mặt tại sân
+  collectionId?: string;                   // nộp cho đợt thu quỹ → đánh dấu đã đóng khi xác nhận
 }

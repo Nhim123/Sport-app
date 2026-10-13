@@ -76,7 +76,7 @@ export default function BookingScreen() {
       <BottomBar
         summary={summary}
         priceLabel={b.priceLabel}
-        ctaLabel="Thanh toán qua QR"
+        ctaLabel="Tiếp tục thanh toán"
         ctaDisabled={!b.canPay}
         onPress={goPay}
       />

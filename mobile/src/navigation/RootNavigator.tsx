@@ -10,10 +10,22 @@ import ClubDetailScreen from '../screens/ClubDetailScreen';
 import JoinClubScreen from '../screens/JoinClubScreen';
 import CreateClubScreen from '../screens/CreateClubScreen';
 import CreatePollScreen from '../screens/CreatePollScreen';
+import TournamentRegisterScreen from '../screens/TournamentRegisterScreen';
+import PhoneVerifyScreen from '../screens/PhoneVerifyScreen';
+import ClubListScreen from '../screens/ClubListScreen';
+import TournamentListScreen from '../screens/TournamentListScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ClubPendingScreen from '../screens/ClubPendingScreen';
+import AddFundTxScreen from '../screens/AddFundTxScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import CollectionDetailScreen from '../screens/CollectionDetailScreen';
 import { PassProvider } from '../state/PassContext';
 import { PollProvider } from '../state/PollContext';
+import { ClubRequestProvider } from '../state/ClubRequestContext';
+import { ClubFundProvider } from '../state/ClubFundContext';
+import { NotificationProvider } from '../state/NotificationContext';
+import { FeatureProvider } from '../state/FeatureContext';
 import { useAuth } from '../state/AuthContext';
 import { color } from '../theme/tokens';
 
@@ -26,6 +38,10 @@ export function RootNavigator() {
   return (
     <PassProvider>
      <PollProvider>
+     <ClubRequestProvider>
+     <ClubFundProvider>
+     <NotificationProvider>
+     <FeatureProvider>
       <Stack.Navigator
         screenOptions={{
           headerTintColor: color.ink,
@@ -64,15 +80,27 @@ export function RootNavigator() {
         <Stack.Screen
           name="DayPassConfirm"
           component={DayPassConfirmScreen}
-          options={{ title: 'Hoàn tất', headerLeft: () => null, gestureEnabled: false }}
+          options={{ title: 'Trạng thái đơn', headerLeft: () => null, gestureEnabled: false }}
         />
         <Stack.Screen name="ClubDetail" component={ClubDetailScreen} options={({ route }) => ({ title: route.params.name })} />
+        <Stack.Screen name="ClubPending" component={ClubPendingScreen} options={{ title: 'Chờ phê duyệt' }} />
+        <Stack.Screen name="AddFundTx" component={AddFundTxScreen} options={{ title: 'Thêm khoản thu/chi' }} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Thông báo' }} />
+        <Stack.Screen name="CollectionDetail" component={CollectionDetailScreen} options={{ title: 'Chi tiết đợt thu' }} />
         <Stack.Screen name="JoinClub" component={JoinClubScreen} options={{ title: 'Tham gia CLB' }} />
         <Stack.Screen name="CreateClub" component={CreateClubScreen} options={{ title: 'Tạo câu lạc bộ' }} />
         <Stack.Screen name="CreatePoll" component={CreatePollScreen} options={{ title: 'Tạo bình chọn' }} />
+        <Stack.Screen name="TournamentRegister" component={TournamentRegisterScreen} options={{ title: 'Đăng ký giải đấu' }} />
+        <Stack.Screen name="PhoneVerify" component={PhoneVerifyScreen} options={{ title: 'Xác thực SĐT' }} />
+        <Stack.Screen name="ClubList" component={ClubListScreen} options={{ title: 'Tất cả câu lạc bộ' }} />
+        <Stack.Screen name="TournamentList" component={TournamentListScreen} options={{ title: 'Tất cả giải đấu' }} />
           </>
         )}
       </Stack.Navigator>
+     </FeatureProvider>
+     </NotificationProvider>
+     </ClubFundProvider>
+     </ClubRequestProvider>
      </PollProvider>
     </PassProvider>
   );

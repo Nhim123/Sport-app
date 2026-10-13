@@ -14,6 +14,11 @@ interface Ctx {
 const PollContext = createContext<Ctx | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 9);
 
+/** Poll đã khoá khi bị đóng thủ công hoặc đã tới/qua mốc kết thúc. */
+export function isPollLocked(p: ClubPoll): boolean {
+  return p.closed === true || (p.closesAt != null && Date.now() >= p.closesAt);
+}
+
 /** Giữ trạng thái bình chọn CLB dùng chung giữa màn Câu lạc bộ và màn Lịch. */
 export function PollProvider({ children }: { children: ReactNode }) {
   const [polls, setPolls] = useState<ClubPoll[]>(seed);
@@ -21,6 +26,7 @@ export function PollProvider({ children }: { children: ReactNode }) {
   const vote = useCallback((pollId: string, optionId: string) => {
     setPolls(prev => prev.map(p => {
       if (p.id !== pollId) return p;
+      if (isPollLocked(p)) return p;   // hết giờ → không nhận phiếu nữa
       const chosen = p.myVotes.includes(optionId);
       const dec = (id: string) => (o: ClubPollOption) => o.id === id ? { ...o, votes: Math.max(0, o.votes - 1) } : o;
 
@@ -52,7 +58,9 @@ export function PollProvider({ children }: { children: ReactNode }) {
     const text = label.trim();
     if (!text) return;
     setPolls(prev => prev.map(p =>
-      p.id === pollId ? { ...p, options: [...p.options, { id: uid(), label: text, votes: 0 }] } : p,
+      p.id === pollId && !isPollLocked(p)
+        ? { ...p, options: [...p.options, { id: uid(), label: text, votes: 0 }] }
+        : p,
     ));
   }, []);
 

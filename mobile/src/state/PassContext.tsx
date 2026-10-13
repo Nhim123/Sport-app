@@ -8,6 +8,7 @@ interface Ctx {
   reset: (kind?: DayPassKind) => void;
   joinedClub: boolean;              // đã tạo/tham gia CLB nào chưa (tài khoản mời truy cập)
   joinClub: () => void;
+  leaveClub: () => void;            // rời câu lạc bộ
 }
 
 const PassContext = createContext<Ctx | null>(null);
@@ -24,9 +25,10 @@ export function PassProvider({ children }: { children: ReactNode }) {
     setActive(s => (kind ? { ...s, [kind]: false } : { personal: false, club: false }));
   }, []);
   const joinClub = useCallback(() => setJoinedClub(true), []);
+  const leaveClub = useCallback(() => setJoinedClub(false), []);
 
   return (
-    <PassContext.Provider value={{ active, purchase, reset, joinedClub, joinClub }}>
+    <PassContext.Provider value={{ active, purchase, reset, joinedClub, joinClub, leaveClub }}>
       {children}
     </PassContext.Provider>
   );

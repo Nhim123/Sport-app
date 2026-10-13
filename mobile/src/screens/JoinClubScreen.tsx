@@ -7,6 +7,7 @@ import { ClubRow } from '../components/cards/ClubRow';
 import { QrScanModal } from '../components/QrScanModal';
 import { discoverClubs } from '../data/mock';
 import { usePasses } from '../state/PassContext';
+import { useClubRequests } from '../state/ClubRequestContext';
 import { RootStackParamList } from '../navigation/types';
 import { Club } from '../types';
 import { color, font, space, shadow } from '../theme/tokens';
@@ -19,6 +20,7 @@ const codeOf = (c: Club) => c.id.toUpperCase();
 export default function JoinClubScreen() {
   const nav = useNavigation<Nav>();
   const { joinClub } = usePasses();
+  const { requestJoin } = useClubRequests();
   const [code, setCode] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
 
@@ -31,9 +33,15 @@ export default function JoinClubScreen() {
   }, [query]);
 
   const join = (c: Club) => {
-    joinClub();
     setScanOpen(false);
-    // Quay về tab CLB (giờ đã có CLB) rồi mở luôn màn chi tiết CLB vừa tham gia.
+    if (c.privacy === 'approval') {
+      // CLB cần duyệt → gửi yêu cầu, sang màn chờ phê duyệt.
+      requestJoin(c.id);
+      nav.navigate('ClubPending', { id: c.id, name: c.name });
+      return;
+    }
+    joinClub();
+    // CLB công khai → vào luôn: quay về tab CLB rồi mở chi tiết.
     nav.goBack();
     nav.navigate('ClubDetail', { id: c.id, name: c.name });
   };

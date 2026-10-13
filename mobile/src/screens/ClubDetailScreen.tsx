@@ -1,5 +1,5 @@
 import { useState, useLayoutEffect } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, Alert, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,9 +11,12 @@ import { Avatar } from '../components/primitives/Avatar';
 import { Tag } from '../components/primitives/Tag';
 import { PollCard } from '../components/cards/PollCard';
 import { formatVnd } from '../utils/format';
-import { getClub, clubFund, clubMembers, clubPrograms } from '../data/mock';
+import { getClub, clubMembers, clubPrograms } from '../data/mock';
 import { usePolls } from '../state/PollContext';
-import { ClubTab, ClubViewerRole } from '../types';
+import { usePasses } from '../state/PassContext';
+import { useClubRequests } from '../state/ClubRequestContext';
+import { useClubFund } from '../state/ClubFundContext';
+import { ClubTab, ClubViewerRole, PaymentOrder } from '../types';
 
 const TABS: SegOption<ClubTab>[] = [
   { key: 'fund', label: 'Quỹ CLB' },
@@ -27,6 +30,14 @@ export default function ClubDetailScreen() {
   const role: ClubViewerRole = getClub(params.id)?.myRole ?? 'member';
   const isOwner = role === 'owner';
   const [tab, setTab] = useState<ClubTab>('fund');
+  const { leaveClub } = usePasses();
+
+  const onLeave = () => {
+    Alert.alert('Rời câu lạc bộ', `Bạn chắc chắn muốn rời ${params.name}?`, [
+      { text: 'Huỷ', style: 'cancel' },
+      { text: 'Rời', style: 'destructive', onPress: () => { leaveClub(); nav.goBack(); } },
+    ]);
+  };
 
   // Tạo bình chọn chỉ dành cho quản trị viên (chủ hội) → nút chỉ hiện khi isOwner.
   useLayoutEffect(() => {
@@ -50,23 +61,40 @@ export default function ClubDetailScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: space.xl, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-      <View style={[styles.roleChip, isOwner ? styles.roleOwner : styles.roleMember]}>
-        <Ionicons name={isOwner ? 'shield-checkmark' : 'person'} size={14} color={isOwner ? color.ink : color.textMuted} />
-        <Text style={[styles.roleTxt, { color: isOwner ? color.ink : color.textMuted }]}>
-          {isOwner ? 'Bạn là Chủ hội — quản lý CLB' : 'Bạn là Hội viên'}
-        </Text>
+      {/* Banner vai trò — làm nổi bật bạn là Chủ hội hay Hội viên */}
+      <View style={[styles.roleBanner, isOwner ? styles.roleBannerOwner : styles.roleBannerMember]}>
+        <View style={[styles.roleIcon, isOwner ? styles.roleIconOwner : styles.roleIconMember]}>
+          <Ionicons name={isOwner ? 'shield-checkmark' : 'person'} size={24} color={isOwner ? color.volt : color.ink} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.roleName}>{isOwner ? 'Chủ câu lạc bộ' : 'Hội viên'}</Text>
+          <Text style={styles.roleDesc}>
+            {isOwner ? 'Bạn quản lý CLB — tạo bình chọn, quản quỹ & chương trình' : 'Bạn là thành viên của câu lạc bộ này'}
+          </Text>
+        </View>
+        <View style={[styles.roleBadge, isOwner ? styles.roleBadgeOwner : styles.roleBadgeMember]}>
+          <Text style={[styles.roleBadgeTxt, { color: isOwner ? color.volt : color.textMuted }]}>
+            {isOwner ? 'QUẢN TRỊ' : 'THÀNH VIÊN'}
+          </Text>
+        </View>
       </View>
 
       <SegmentedTabs value={tab} options={TABS} onChange={setTab} />
       <View style={{ height: 18 }} />
 
-      {tab === 'fund' ? <FundView isOwner={isOwner} />
-        : tab === 'members' ? <MembersView isOwner={isOwner} />
+      {tab === 'fund' ? <FundView isOwner={isOwner} clubId={params.id} clubName={params.name} />
+        : tab === 'members' ? <MembersView isOwner={isOwner} clubId={params.id} />
         : <ProgramsView isOwner={isOwner} />}
 
       {/* Bình chọn — mục riêng, không nằm trong thanh tab ngang */}
       <Text style={styles.voteHeading}>Bình chọn của CLB</Text>
       <VoteView clubName={params.name} isOwner={isOwner} />
+
+      {/* Rời câu lạc bộ — đặt ở dưới cùng của trang */}
+      <Pressable onPress={onLeave} accessibilityRole="button" accessibilityLabel="Rời câu lạc bộ" style={styles.leaveBtn}>
+        <Ionicons name="exit-outline" size={18} color={color.danger} />
+        <Text style={styles.leaveTxt}>Rời câu lạc bộ</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -101,34 +129,50 @@ function VoteView({ clubName }: { clubName: string; isOwner: boolean }) {
 }
 
 /* ---- Quỹ CLB ---- */
-function FundView({ isOwner }: { isOwner: boolean }) {
+function FundView({ isOwner, clubId, clubName }: { isOwner: boolean; clubId: string; clubName: string }) {
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const fund = useClubFund();
+  // Đóng quỹ → màn thanh toán (gián tiếp, chủ hội xác nhận thủ công).
+  const payDues = () => {
+    const order: PaymentOrder = {
+      purpose: 'club',
+      title: 'Đóng quỹ câu lạc bộ',
+      brand: clubName,
+      itemLabel: 'Khoản đóng',
+      itemValue: 'Quỹ tháng 8',
+      date: 'Tháng 8/2026',
+      priceLabel: '100.000₫',
+      code: 'QUY-' + Math.random().toString(36).slice(2, 7).toUpperCase(),
+    };
+    nav.navigate('DayPassPayment', { order });
+  };
   return (
     <>
       <LinearGradient colors={grad.dark} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fundCard}>
         <Text style={styles.fundLabel}>Số dư quỹ</Text>
-        <Text style={styles.fundBalance}>{formatVnd(clubFund.balance)}</Text>
+        <Text style={styles.fundBalance}>{formatVnd(fund.balance)}</Text>
         <View style={styles.fundRow}>
           <View style={styles.fundCol}>
             <Text style={styles.fundSub}>Tổng thu</Text>
-            <Text style={[styles.fundAmt, { color: color.volt }]}>+{formatVnd(clubFund.income)}</Text>
+            <Text style={[styles.fundAmt, { color: color.volt }]}>+{formatVnd(fund.income)}</Text>
           </View>
           <View style={styles.fundCol}>
             <Text style={styles.fundSub}>Tổng chi</Text>
-            <Text style={[styles.fundAmt, { color: '#FF8A7A' }]}>-{formatVnd(clubFund.expense)}</Text>
+            <Text style={[styles.fundAmt, { color: '#FF8A7A' }]}>-{formatVnd(fund.expense)}</Text>
           </View>
         </View>
       </LinearGradient>
 
       {/* Chủ hội: thêm giao dịch · Hội viên: đóng quỹ */}
       {isOwner ? (
-        <PrimaryAction icon="add-circle-outline" label="Thêm khoản thu / chi" />
+        <PrimaryAction icon="add-circle-outline" label="Thêm khoản thu / chi" onPress={() => nav.navigate('AddFundTx', { clubId, name: clubName })} />
       ) : (
         <View style={styles.dueCard}>
           <View style={styles.rowMid}>
             <Text style={styles.itemTitle}>Quỹ tháng 8</Text>
             <Text style={styles.itemSub}>Cần đóng 100.000₫</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Đóng quỹ" style={styles.dueBtn}>
+          <Pressable onPress={payDues} accessibilityRole="button" accessibilityLabel="Đóng quỹ" style={styles.dueBtn}>
             <Text style={styles.dueTxt}>Đóng quỹ</Text>
           </Pressable>
         </View>
@@ -136,17 +180,33 @@ function FundView({ isOwner }: { isOwner: boolean }) {
 
       <Text style={styles.section}>Giao dịch gần đây</Text>
       <View style={styles.card}>
-        {clubFund.txs.map((t, i) => (
-          <View key={t.id} style={[styles.row, i < clubFund.txs.length - 1 && styles.divider]}>
-            <View style={styles.rowMid}>
-              <Text style={styles.itemTitle} numberOfLines={1}>{t.label}</Text>
-              <Text style={styles.itemSub}>{t.date}</Text>
-            </View>
-            <Text style={[styles.amount, { color: t.kind === 'in' ? color.voltDark : color.danger }]}>
-              {t.kind === 'in' ? '+' : '-'}{formatVnd(t.amount)}
-            </Text>
-          </View>
-        ))}
+        {fund.txs.map((t, i) => {
+          const col = fund.collectionById(t.collectionId);
+          const paidCount = col ? col.payers.filter(p => p.paid).length : 0;
+          const openDetail = () => nav.navigate('CollectionDetail', { collectionId: t.collectionId! });
+          return (
+            <Pressable
+              key={t.id}
+              onPress={col && isOwner ? openDetail : undefined}
+              disabled={!col || !isOwner}
+              style={[styles.row, i < fund.txs.length - 1 && styles.divider]}
+            >
+              <View style={styles.rowMid}>
+                <Text style={styles.itemTitle} numberOfLines={1}>{t.label}</Text>
+                {col ? (
+                  <Text style={styles.itemSub}>
+                    {t.date} · đã đóng {paidCount}/{col.payers.length}{isOwner ? ' · xem chi tiết ›' : ''}
+                  </Text>
+                ) : (
+                  <Text style={styles.itemSub}>{t.date}</Text>
+                )}
+              </View>
+              <Text style={[styles.amount, { color: t.kind === 'in' ? color.voltDark : color.danger }]}>
+                {t.kind === 'in' ? '+' : '-'}{formatVnd(t.amount)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
     </>
   );
@@ -156,9 +216,35 @@ function FundView({ isOwner }: { isOwner: boolean }) {
 const ROLE_VARIANT: Record<string, 'volt' | 'soft' | 'dark'> = {
   'Chủ nhiệm': 'volt', 'Quản lý': 'dark', 'Thành viên': 'soft',
 };
-function MembersView({ isOwner }: { isOwner: boolean }) {
+function MembersView({ isOwner, clubId }: { isOwner: boolean; clubId: string }) {
+  const { pendingFor, approve, reject } = useClubRequests();
+  const requests = pendingFor(clubId);
   return (
     <>
+      {/* Quản trị: phê duyệt thành viên chờ duyệt */}
+      {isOwner && requests.length > 0 ? (
+        <>
+          <Text style={styles.section}>Yêu cầu chờ duyệt ({requests.length})</Text>
+          <View style={styles.card}>
+            {requests.map((r, i) => (
+              <View key={r.id} style={[styles.reqRow, i < requests.length - 1 && styles.divider]}>
+                <Avatar label={r.initials} size={40} />
+                <View style={[styles.rowMid, { marginLeft: 12 }]}>
+                  <Text style={styles.itemTitle}>{r.name}</Text>
+                  {r.note ? <Text style={styles.itemSub} numberOfLines={1}>{r.note}</Text> : null}
+                </View>
+                <Pressable onPress={() => approve(r.id)} accessibilityLabel="Duyệt" style={styles.approveBtn}>
+                  <Ionicons name="checkmark" size={16} color={color.ink} />
+                </Pressable>
+                <Pressable onPress={() => reject(r.id)} accessibilityLabel="Từ chối" style={styles.rejectBtn}>
+                  <Ionicons name="close" size={16} color={color.danger} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
+
       <View style={styles.sectionRow}>
         <Text style={styles.section}>{clubMembers.length} thành viên</Text>
         {isOwner ? <Pressable hitSlop={8}><Text style={styles.link}>Mời thành viên</Text></Pressable> : null}
@@ -179,9 +265,6 @@ function MembersView({ isOwner }: { isOwner: boolean }) {
           </View>
         ))}
       </View>
-      {!isOwner ? (
-        <Pressable accessibilityRole="button" style={styles.leaveBtn}><Text style={styles.leaveTxt}>Rời câu lạc bộ</Text></Pressable>
-      ) : null}
     </>
   );
 }
@@ -225,10 +308,20 @@ function ProgramsView({ isOwner }: { isOwner: boolean }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.bg },
-  roleChip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.chip, marginTop: 4 },
-  roleOwner: { backgroundColor: color.volt },
-  roleMember: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.line },
-  roleTxt: { fontSize: 12.5, fontWeight: '800' },
+
+  // Banner vai trò (nổi bật)
+  roleBanner: { flexDirection: 'row', alignItems: 'center', gap: 13, borderRadius: radius.card, padding: 16, marginTop: 4, ...shadow.card },
+  roleBannerOwner: { backgroundColor: color.volt },
+  roleBannerMember: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.line },
+  roleIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  roleIconOwner: { backgroundColor: color.ink },
+  roleIconMember: { backgroundColor: color.volt },
+  roleName: { fontSize: 17, fontWeight: '900', color: color.ink },
+  roleDesc: { ...font.sub, color: color.ink, opacity: 0.7, marginTop: 2 },
+  roleBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.chip },
+  roleBadgeOwner: { backgroundColor: color.ink },
+  roleBadgeMember: { backgroundColor: color.lineSoft },
+  roleBadgeTxt: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
 
   section: { ...font.section, color: color.ink, marginTop: 20, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -262,9 +355,12 @@ const styles = StyleSheet.create({
   dueBtn: { backgroundColor: color.ink, borderRadius: radius.chip, paddingHorizontal: 18, paddingVertical: 10 },
   dueTxt: { color: color.volt, fontSize: 13, fontWeight: '800' },
 
-  // Thành viên
-  leaveBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 8 },
-  leaveTxt: { ...font.sub, color: color.danger, fontWeight: '800' },
+  // Rời CLB (dưới cùng trang)
+  reqRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+  approveBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: color.volt, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  rejectBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: color.surface, borderWidth: 1, borderColor: color.line, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  leaveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 16, marginTop: 28, borderTopWidth: 1, borderTopColor: color.line },
+  leaveTxt: { ...font.body, color: color.danger, fontWeight: '800' },
 
   // Chương trình
   progCard: { backgroundColor: color.surface, borderRadius: radius.card, padding: 16, marginBottom: 12, ...shadow.card, gap: 4 },

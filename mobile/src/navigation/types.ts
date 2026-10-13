@@ -20,7 +20,15 @@ export type RootStackParamList = {
   DayPassPayment: { order: PaymentOrder };
   DayPassConfirm: { order: PaymentOrder };
   ClubDetail: { id: string; name: string };
+  ClubPending: { id: string; name: string };
+  AddFundTx: { clubId: string; name: string };
+  CollectionDetail: { collectionId: string };
+  Notifications: undefined;
   JoinClub: undefined;
   CreateClub: undefined;
   CreatePoll: { club: string };
+  TournamentRegister: { id: string };
+  PhoneVerify: { phone?: string } | undefined;
+  ClubList: undefined;
+  TournamentList: undefined;
 };

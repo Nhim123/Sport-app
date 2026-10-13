@@ -9,11 +9,12 @@ interface Props { club: Club; onPress: () => void }
 
 /** Thẻ CLB của tôi — cuộn ngang, nền gradient, overlay tối ở đáy. */
 function ClubCardBase({ club, onPress }: Props) {
+  const isOwner = club.myRole === 'owner';   // hiện vai trò của mình ngay trên thẻ
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={styles.wrap}>
       <LinearGradient colors={club.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bg}>
         <View style={styles.overlay}>
-          <Tag label="THÀNH VIÊN" />
+          <Tag label={isOwner ? 'QUẢN TRỊ VIÊN' : 'THÀNH VIÊN'} variant={isOwner ? 'volt' : 'soft'} />
           <Text style={styles.name}>{club.name}</Text>
           <Text style={styles.note}>{club.members} thành viên · {club.note}</Text>
         </View>

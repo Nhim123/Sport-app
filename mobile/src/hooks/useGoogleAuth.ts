@@ -9,12 +9,22 @@ WebBrowser.maybeCompleteAuthSession();
 export interface GoogleAccount { name: string; email: string }
 
 /**
- * Google OAuth thật (expo-auth-session). Sau khi đăng nhập, lấy access token rồi
- * gọi userinfo để lấy tên + email, trả về qua `onAccount`.
- * `ready` = đã cấu hình client ID và request sẵn sàng → dùng OAuth thật;
- * nếu false, màn hình tự fallback sang chế độ demo.
+ * Google OAuth. Khi CHƯA cấu hình client ID (config/google.ts còn rỗng) → trả stub
+ * (ready=false) và KHÔNG gọi expo-auth-session — tránh crash
+ * "Client Id property `iosClientId` must be defined". Màn hình tự fallback demo.
+ * Khi đã cấu hình → dùng OAuth thật qua hook con bên dưới.
+ *
+ * `googleConfigured` là hằng số ở tầng module (không đổi khi chạy) nên nhánh rẽ này
+ * ổn định giữa các lần render — không phá thứ tự hook.
  */
 export function useGoogleAuth(onAccount: (acc: GoogleAccount) => void) {
+  if (!googleConfigured) {
+    return { ready: false, loading: false, prompt: async () => {} };
+  }
+  return useConfiguredGoogleAuth(onAccount);
+}
+
+function useConfiguredGoogleAuth(onAccount: (acc: GoogleAccount) => void) {
   const [loading, setLoading] = useState(false);
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: GOOGLE.androidClientId || undefined,
@@ -44,7 +54,7 @@ export function useGoogleAuth(onAccount: (acc: GoogleAccount) => void) {
     })();
   }, [response]);
 
-  const ready = googleConfigured && !!request;
+  const ready = !!request;
   const prompt = async () => {
     setLoading(true);
     try {

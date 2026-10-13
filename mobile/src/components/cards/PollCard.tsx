@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubPoll } from '../../types';
+import { isPollLocked } from '../../state/PollContext';
 import { color, font, radius, shadow } from '../../theme/tokens';
 
 interface Props {
@@ -15,9 +16,20 @@ export function PollCard({ poll, onVote, onAddOption }: Props) {
   const total = poll.options.reduce((s, o) => s + o.votes, 0);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
-  const canAdd = poll.allowAddOption && !!onAddOption;
-  // Ẩn kết quả cho tới khi mình đã bỏ phiếu.
-  const revealed = !poll.hideResults || poll.myVotes.length > 0;
+  // `now` tick để tự re-render đúng lúc poll hết giờ.
+  const [, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (poll.closed || poll.closesAt == null) return;
+    const ms = poll.closesAt - Date.now();
+    if (ms <= 0) return;                       // đã quá hạn
+    const t = setTimeout(() => setNow(Date.now()), ms + 300);
+    return () => clearTimeout(t);
+  }, [poll.closesAt, poll.closed]);
+
+  const locked = isPollLocked(poll);
+  const canAdd = poll.allowAddOption && !!onAddOption && !locked;
+  // Hết giờ → luôn hiện kết quả; còn mở thì ẩn cho tới khi mình đã bỏ phiếu.
+  const revealed = locked || !poll.hideResults || poll.myVotes.length > 0;
 
   const submitOption = () => {
     const t = draft.trim();
@@ -33,7 +45,12 @@ export function PollCard({ poll, onVote, onAddOption }: Props) {
           <Text style={styles.title}>{poll.title}</Text>
           {poll.note ? <Text style={styles.note}>{poll.note}</Text> : null}
         </View>
-        {poll.closesLabel ? (
+        {locked ? (
+          <View style={[styles.chip, styles.chipLocked]}>
+            <Ionicons name="lock-closed" size={12} color={color.ink} />
+            <Text style={[styles.chipTxt, { color: color.ink }]}>Đã kết thúc</Text>
+          </View>
+        ) : poll.closesLabel ? (
           <View style={styles.chip}>
             <Ionicons name="time-outline" size={12} color={color.textMuted} />
             <Text style={styles.chipTxt}>{poll.closesLabel}</Text>
@@ -58,9 +75,10 @@ export function PollCard({ poll, onVote, onAddOption }: Props) {
         return (
           <Pressable
             key={o.id}
-            onPress={() => onVote(o.id)}
+            onPress={locked ? undefined : () => onVote(o.id)}
+            disabled={locked}
             accessibilityRole="button"
-            accessibilityState={{ selected: mine }}
+            accessibilityState={{ selected: mine, disabled: locked }}
             style={[styles.opt, mine && styles.optMine]}
           >
             <View style={[styles.bar, { width: revealed ? `${pct}%` : 0 }, mine && styles.barMine]} />
@@ -101,8 +119,9 @@ export function PollCard({ poll, onVote, onAddOption }: Props) {
       ) : null}
 
       <Text style={styles.footer}>
-        {revealed ? `${total} lượt bình chọn · ` : 'Ẩn kết quả · '}
-        chạm để {poll.myVotes.length ? 'đổi hoặc rút phiếu' : 'bình chọn'}
+        {locked
+          ? `Đã khoá · ${total} lượt bình chọn`
+          : `${revealed ? `${total} lượt bình chọn` : 'Ẩn kết quả'} · chạm để ${poll.myVotes.length ? 'đổi hoặc rút phiếu' : 'bình chọn'}`}
       </Text>
     </View>
   );
@@ -114,6 +133,7 @@ const styles = StyleSheet.create({
   title: { ...font.cardTitle, color: color.ink },
   note: { ...font.sub, color: color.textMuted, marginTop: 3 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: color.bg, borderRadius: radius.chip, paddingHorizontal: 9, paddingVertical: 5 },
+  chipLocked: { backgroundColor: color.lineSoft },
   chipTxt: { ...font.tiny, color: color.textMuted, fontWeight: '700' },
 
   tags: { flexDirection: 'row', gap: 8, marginBottom: 12 },

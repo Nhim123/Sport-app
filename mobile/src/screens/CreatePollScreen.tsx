@@ -15,8 +15,10 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const MAX_OPTIONS = 10;
 const ACCENT = '#2F80ED';   // xanh dương kiểu Zalo cho liên kết & nút TẠO
 
-// Vòng lặp preset thời hạn (chạm để đổi).
+// Vòng lặp preset thời hạn (chạm để đổi). DEADLINE_DAYS khớp chỉ số để tính closesAt.
 const DEADLINES = [undefined, 'còn 1 ngày', 'còn 3 ngày', 'còn 7 ngày'] as const;
+const DEADLINE_DAYS = [0, 1, 3, 7];
+const DAY_MS = 86_400_000;
 
 export default function CreatePollScreen() {
   const nav = useNavigation<Nav>();
@@ -47,6 +49,8 @@ export default function CreatePollScreen() {
   const create = () => {
     if (!canCreate) return;
     const closesLabel = DEADLINES[deadlineIdx];
+    const dl = DEADLINE_DAYS[deadlineIdx];
+    const closesAt = dl > 0 ? Date.now() + dl * DAY_MS : undefined;   // quá mốc này → tự khoá
     const poll: ClubPoll = {
       id: uid(),
       club: params.club,
@@ -54,6 +58,7 @@ export default function CreatePollScreen() {
       dayKey,
       note: dayKey ? `Buổi sinh hoạt ${dayLabel}` : undefined,
       closesLabel,
+      closesAt,
       options: filled.map(label => ({ id: uid(), label, votes: 0 })),
       myVotes: [],
       allowMultiple,
