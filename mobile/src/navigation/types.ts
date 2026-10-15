@@ -4,6 +4,7 @@ import { PaymentOrder, GymMode } from '../types';
 export type TabParamList = {
   Home: undefined;
   Search: undefined;
+  Map: undefined;
   Club: undefined;
   Bookings: undefined;
   Profile: undefined;

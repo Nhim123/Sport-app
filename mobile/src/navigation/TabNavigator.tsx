@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
+import MapScreen from '../screens/MapScreen';
 import ClubScreen from '../screens/ClubScreen';
 import BookingsScreen from '../screens/BookingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { TabParamList } from './types';
+import { useLanguage } from '../state/LanguageContext';
 import { color, font } from '../theme/tokens';
 
 // Material top tabs đặt ở đáy → vuốt ngang chuyển giữa 5 trang chính.
@@ -16,14 +18,11 @@ import { color, font } from '../theme/tokens';
 const Tab = createMaterialTopTabNavigator<TabParamList>();
 
 const ICON: Record<keyof TabParamList, keyof typeof Ionicons.glyphMap> = {
-  Home: 'home', Search: 'search', Club: 'people', Bookings: 'calendar', Profile: 'person',
+  Home: 'home', Search: 'search', Map: 'map', Club: 'people', Bookings: 'calendar', Profile: 'person',
 };
-const LABEL: Record<keyof TabParamList, string> = {
-  Home: 'Trang chủ', Search: 'Tìm', Club: 'CLB', Bookings: 'Lịch', Profile: 'Tôi',
-};
-
 function BottomBar({ state, navigation }: MaterialTopTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   return (
     <View style={[styles.bar, { height: 58 + insets.bottom, paddingBottom: insets.bottom }]}>
       {state.routes.map((route, index) => {
@@ -43,7 +42,7 @@ function BottomBar({ state, navigation }: MaterialTopTabBarProps) {
             style={styles.item}
           >
             <Ionicons name={ICON[name]} size={22} color={tint} />
-            <Text style={[styles.label, { color: tint }]}>{LABEL[name]}</Text>
+            <Text style={[styles.label, { color: tint }]}>{t('tab.' + name.toLowerCase())}</Text>
           </Pressable>
         );
       })}
@@ -60,6 +59,7 @@ export function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Club" component={ClubScreen} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
