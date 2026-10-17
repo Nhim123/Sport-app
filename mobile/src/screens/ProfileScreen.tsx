@@ -9,7 +9,9 @@ import { StatCell } from '../components/primitives/StatCell';
 import { MenuRow } from '../components/primitives/MenuRow';
 import { SegmentedTabs } from '../components/chips/SegmentedTabs';
 import { ActivityChart, ActivityPoint } from '../components/charts/ActivityChart';
+import { AchievementCard } from '../components/cards/AchievementCard';
 import { profileStats, activityWeek, activityMonth } from '../data/mock';
+import { achievements } from '../data/achievements';
 import { useAuth } from '../state/AuthContext';
 import { useLanguage, LANG_NATIVE, Lang } from '../state/LanguageContext';
 import { RootStackParamList } from '../navigation/types';
@@ -17,6 +19,8 @@ import { color, font, radius, space, shadow } from '../theme/tokens';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const SPORT_LABEL: Record<string, string> = { pickle: 'Pickleball', football: 'Bóng đá', gym: 'Gym' };
+const SPORT_EMOJI: Record<string, string> = { pickle: '🏓', football: '⚽', gym: '🏋️' };
+const SPORT_ORDER = ['pickle', 'football', 'gym'] as const;
 
 // Viết tắt tên → 2 chữ cái cho avatar (vd "Minh Khang" → "MK").
 const initialsOf = (name: string) =>
@@ -43,6 +47,11 @@ export default function ProfileScreen() {
   );
   const total = useMemo(() => chartData.reduce((s, d) => s + d.value, 0), [chartData]);
   const avg = chartData.length ? Math.round((total / chartData.length) * 10) / 10 : 0;
+
+  // Thành tích tách theo bộ môn: chip các môn đã tham gia, bấm để xem thành tích môn đó.
+  const playedSports = useMemo(() => SPORT_ORDER.filter(sp => achievements.some(a => a.sport === sp)), []);
+  const [achSport, setAchSport] = useState<string>(playedSports[0] ?? 'pickle');
+  const achList = useMemo(() => achievements.filter(a => a.sport === achSport), [achSport]);
 
   return (
     <Screen>
@@ -94,13 +103,34 @@ export default function ProfileScreen() {
           <ActivityChart data={chartData} unit="h" />
         </View>
 
+        <View style={styles.achCard}>
+          <Text style={styles.achTitle}>{t('ach.title')}</Text>
+          {playedSports.length === 0 ? (
+            <Text style={styles.achEmpty}>{t('ach.empty')}</Text>
+          ) : (
+            <>
+              <View style={styles.achChips}>
+                {playedSports.map(sp => {
+                  const on = sp === achSport;
+                  return (
+                    <Pressable key={sp} style={[styles.achChip, on && styles.achChipOn]} onPress={() => setAchSport(sp)}
+                      accessibilityRole="button" accessibilityState={{ selected: on }}>
+                      <Text style={[styles.achChipTxt, on && styles.achChipTxtOn]}>{SPORT_EMOJI[sp]} {SPORT_LABEL[sp]}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {achList.map((a, i) => <AchievementCard key={a.id} item={a} last={i === achList.length - 1} />)}
+            </>
+          )}
+        </View>
+
         <View style={styles.menuCard}>
           <MenuRow icon="🎁" label={t('profile.benefits')} value={t('val.silver')} onPress={() => {}} />
-          <MenuRow icon="🪪" label={t('profile.profile')} value={name} onPress={() => {}} />
+          <MenuRow icon="🪪" label={t('profile.account')} value={infoValue || name} onPress={() => nav.navigate('ProfileInfo')} />
           <MenuRow icon="🕑" label={t('profile.history')} onPress={() => nav.navigate('MainTabs', { screen: 'Bookings' })} />
           <MenuRow icon="🌐" label={t('profile.language')} value={LANG_NATIVE[lang]} onPress={() => setLangOpen(true)} />
-          <MenuRow icon="🏅" label={t('profile.level')} value={sportValue ? `${sportValue} · ${t('val.intermediate')}` : t('val.intermediate')} onPress={() => {}} />
-          <MenuRow icon="👤" label={t('profile.info')} value={infoValue} onPress={() => {}} last />
+          <MenuRow icon="🏅" label={t('profile.level')} value={sportValue ? `${sportValue} · ${t('val.intermediate')}` : t('val.intermediate')} onPress={() => nav.navigate('Level')} last />
         </View>
 
         <Pressable accessibilityRole="button" style={styles.logout} onPress={signOut}>
@@ -147,6 +177,14 @@ const styles = StyleSheet.create({
   actUnit: { ...font.sub, color: color.textMuted, fontWeight: '700' },
   actCaption: { ...font.tiny, color: color.textMuted, fontWeight: '600', marginTop: 2 },
   actDivider: { width: 1, alignSelf: 'stretch', backgroundColor: color.lineSoft },
+  achCard: { backgroundColor: color.surface, borderRadius: radius.card, padding: 16, marginTop: 24, ...shadow.card },
+  achTitle: { ...font.cardTitle, fontWeight: '800', color: color.ink, marginBottom: 4 },
+  achEmpty: { ...font.sub, color: color.textMuted, marginTop: 8 },
+  achChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 4 },
+  achChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.chip, backgroundColor: color.bg, borderWidth: 1, borderColor: color.line },
+  achChipOn: { backgroundColor: color.volt, borderColor: color.voltDark },
+  achChipTxt: { ...font.sub, color: color.textMuted, fontWeight: '700' },
+  achChipTxtOn: { color: color.ink },
   menuCard: { backgroundColor: color.surface, borderRadius: radius.card, paddingHorizontal: 8, paddingVertical: 6, marginTop: 24, ...shadow.card },
   logout: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.line, borderRadius: radius.md, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
   logoutTxt: { ...font.body, fontWeight: '700', color: color.danger },

@@ -35,6 +35,8 @@ interface Ctx {
   // Xác thực số điện thoại qua OTP (demo: sinh mã tại client; backend thật sẽ gửi SMS).
   requestOtp: (phone: string) => Promise<string>;              // trả mã demo để UI gợi ý
   verifyOtp: (phone: string, code: string) => Promise<boolean>;
+  // Cập nhật hồ sơ (tên/SĐT/giới tính/bộ môn) — lưu AsyncStorage.
+  updateProfile: (patch: Partial<Pick<AuthUser, 'name' | 'phone' | 'phoneVerified' | 'gender' | 'favoriteSport'>>) => void;
 }
 
 const KEY = '@sportapp_auth_user';
@@ -123,13 +125,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
+  const updateProfile = useCallback((patch: Partial<Pick<AuthUser, 'name' | 'phone' | 'phoneVerified' | 'gender' | 'favoriteSport'>>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const next: AuthUser = { ...prev, ...patch };
+      AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
   const signOut = useCallback(() => {
     setUser(null);
     AsyncStorage.removeItem(KEY).catch(() => {});
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, register, signInWithGoogle, signOut, requestOtp, verifyOtp }}>
+    <AuthContext.Provider value={{ user, loading, signIn, register, signInWithGoogle, signOut, requestOtp, verifyOtp, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

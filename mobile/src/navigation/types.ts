@@ -30,6 +30,8 @@ export type RootStackParamList = {
   CreatePoll: { club: string };
   TournamentRegister: { id: string };
   PhoneVerify: { phone?: string } | undefined;
+  ProfileInfo: undefined;
+  Level: undefined;
   ClubList: undefined;
   TournamentList: undefined;
 };
