@@ -12,6 +12,8 @@ import CreateClubScreen from '../screens/CreateClubScreen';
 import CreatePollScreen from '../screens/CreatePollScreen';
 import TournamentRegisterScreen from '../screens/TournamentRegisterScreen';
 import PhoneVerifyScreen from '../screens/PhoneVerifyScreen';
+import ProfileInfoScreen from '../screens/ProfileInfoScreen';
+import LevelScreen from '../screens/LevelScreen';
 import ClubListScreen from '../screens/ClubListScreen';
 import TournamentListScreen from '../screens/TournamentListScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -92,6 +94,8 @@ export function RootNavigator() {
         <Stack.Screen name="CreatePoll" component={CreatePollScreen} options={{ title: 'Tạo bình chọn' }} />
         <Stack.Screen name="TournamentRegister" component={TournamentRegisterScreen} options={{ title: 'Đăng ký giải đấu' }} />
         <Stack.Screen name="PhoneVerify" component={PhoneVerifyScreen} options={{ title: 'Xác thực SĐT' }} />
+        <Stack.Screen name="ProfileInfo" component={ProfileInfoScreen} options={{ title: 'Hồ sơ & thông tin' }} />
+        <Stack.Screen name="Level" component={LevelScreen} options={{ title: 'Trình độ' }} />
         <Stack.Screen name="ClubList" component={ClubListScreen} options={{ title: 'Tất cả câu lạc bộ' }} />
         <Stack.Screen name="TournamentList" component={TournamentListScreen} options={{ title: 'Tất cả giải đấu' }} />
           </>

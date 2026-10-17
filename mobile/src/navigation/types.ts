@@ -4,6 +4,7 @@ import { PaymentOrder, GymMode } from '../types';
 export type TabParamList = {
   Home: undefined;
   Search: undefined;
+  Map: undefined;
   Club: undefined;
   Bookings: undefined;
   Profile: undefined;
@@ -29,6 +30,8 @@ export type RootStackParamList = {
   CreatePoll: { club: string };
   TournamentRegister: { id: string };
   PhoneVerify: { phone?: string } | undefined;
+  ProfileInfo: undefined;
+  Level: undefined;
   ClubList: undefined;
   TournamentList: undefined;
 };

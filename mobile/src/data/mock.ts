@@ -299,6 +299,23 @@ export const profileStats: ProfileStat[] = [
   { value: '18', label: 'Ngày gói gym' },
   { value: '4.9', label: 'Điểm uy tín' },
 ];
+// Thời gian hoạt động (giờ). Tuần: 7 ngày T2–CN. Tháng: 4 tuần gần nhất.
+export const activityWeek: { key: string; hours: number }[] = [
+  { key: 'T2', hours: 1.5 },
+  { key: 'T3', hours: 0 },
+  { key: 'T4', hours: 2 },
+  { key: 'T5', hours: 1 },
+  { key: 'T6', hours: 0.5 },
+  { key: 'T7', hours: 3 },
+  { key: 'CN', hours: 2 },
+];
+export const activityMonth: { week: number; hours: number }[] = [
+  { week: 1, hours: 8 },
+  { week: 2, hours: 6.5 },
+  { week: 3, hours: 10 },
+  { week: 4, hours: 7 },
+];
+
 export const profileMenu: MenuItem[] = [
   { key: 'pay', icon: '💳', label: 'Phương thức thanh toán' },
   { key: 'promo', icon: '🎟️', label: 'Ưu đãi & mã giảm giá' },
